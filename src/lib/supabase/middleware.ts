@@ -19,9 +19,8 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims.sub;
   const isLogin = request.nextUrl.pathname.startsWith("/login");
 
   if (!user && !isLogin) return NextResponse.redirect(new URL("/login", request.url));
