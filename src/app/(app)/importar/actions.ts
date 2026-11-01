@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db/client";
 import { getExistingHashes, getFallbackCategories, getRules } from "@/db/queries";
 import { imports, transactions } from "@/db/schema";
+import { chunk } from "@/domain/guards";
 import { buildImportPlan, type ImportPlan } from "@/domain/import-plan";
 import { InvalidPicPayFileError, parsePicPayCsv } from "@/domain/picpay-parser";
 import { requireUserId } from "@/lib/auth";
@@ -79,11 +80,13 @@ export async function confirmImport(
         .insert(imports)
         .values({ userId, nomeArquivo: fileName, linhasTotal: total(p), linhasNovas: p.novas.length })
         .returning({ id: imports.id });
-      if (!p.novas.length) return 0;
-      const inserted = await tx
-        .insert(transactions)
-        .values(
-          p.novas.map((r) => ({
+      let inserted = 0;
+      // Lotes para não estourar o limite de parâmetros do Postgres (65.535).
+      for (const batch of chunk(p.novas, 1000)) {
+        const rows = await tx
+          .insert(transactions)
+          .values(
+            batch.map((r) => ({
             userId,
             importId: imp.id,
             dataHora: r.dataHora,
@@ -95,11 +98,13 @@ export async function confirmImport(
             categoryId: r.categoryId,
             origem: "CSV" as const,
             hashUnico: r.hash,
-          })),
-        )
-        .onConflictDoNothing({ target: [transactions.userId, transactions.hashUnico] })
-        .returning({ id: transactions.id });
-      return inserted.length;
+            })),
+          )
+          .onConflictDoNothing({ target: [transactions.userId, transactions.hashUnico] })
+          .returning({ id: transactions.id });
+        inserted += rows.length;
+      }
+      return inserted;
     });
     revalidatePath("/", "layout");
     return { inseridas };

@@ -1,41 +1,30 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { DEFAULT_CATEGORIES, DEFAULT_RULES } from "@/domain/defaults";
 import type { Db } from "./client";
 import { categories, categoryRules } from "./schema";
 
-/** Cria categorias e regras padrão do usuário. Idempotente. */
+/**
+ * Cria categorias e regras padrão só para usuário sem nenhuma categoria.
+ * Idempotente e seguro contra requisições simultâneas (lock por usuário).
+ */
 export async function ensureUserDefaults(db: Db, userId: string): Promise<void> {
   await db.transaction(async (tx) => {
-    await tx
-      .insert(categories)
-      .values(DEFAULT_CATEGORIES.map((c) => ({ ...c, userId })))
-      .onConflictDoNothing();
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}))`);
 
-    const [existingRule] = await tx
-      .select({ id: categoryRules.id })
-      .from(categoryRules)
-      .where(eq(categoryRules.userId, userId))
+    const [existing] = await tx
+      .select({ id: categories.id })
+      .from(categories)
+      .where(eq(categories.userId, userId))
       .limit(1);
-    if (existingRule) return;
+    if (existing) return;
 
     const cats = await tx
-      .select({ id: categories.id, nome: categories.nome })
-      .from(categories)
-      .where(
-        and(
-          eq(categories.userId, userId),
-          inArray(
-            categories.nome,
-            DEFAULT_RULES.map((r) => r.categoria),
-          ),
-        ),
-      );
+      .insert(categories)
+      .values(DEFAULT_CATEGORIES.map((c) => ({ ...c, userId })))
+      .returning({ id: categories.id, nome: categories.nome });
     const idByName = new Map(cats.map((c) => [c.nome, c.id]));
-    const rules = DEFAULT_RULES.filter((r) => idByName.has(r.categoria)).map((r) => ({
-      userId,
-      padrao: r.padrao,
-      categoryId: idByName.get(r.categoria)!,
-    }));
-    if (rules.length) await tx.insert(categoryRules).values(rules);
+    await tx.insert(categoryRules).values(
+      DEFAULT_RULES.map((r) => ({ userId, padrao: r.padrao, categoryId: idByName.get(r.categoria)! })),
+    );
   });
 }

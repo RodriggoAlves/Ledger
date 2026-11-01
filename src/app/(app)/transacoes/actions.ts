@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db/client";
 import { categories, categoryRules, transactions } from "@/db/schema";
 import { matchCategory } from "@/domain/categorization";
+import { sanitizeTxUpdate } from "@/domain/guards";
 import type { TxType } from "@/domain/picpay-parser";
 import { requireUserId } from "@/lib/auth";
 
@@ -18,9 +19,10 @@ async function assertOwnCategory(userId: string, categoryId: string) {
 
 export async function updateTransaction(
   id: string,
-  data: { categoryId?: string | null; tipo?: TxType },
+  input: { categoryId?: string | null; tipo?: TxType },
 ): Promise<void> {
   const userId = await requireUserId();
+  const data = sanitizeTxUpdate(input);
   if (data.categoryId) await assertOwnCategory(userId, data.categoryId);
   await db
     .update(transactions)
