@@ -17,6 +17,14 @@ export async function getRules(userId: string): Promise<Rule[]> {
     .where(eq(categoryRules.userId, userId));
 }
 
+export async function getRulesWithIds(userId: string) {
+  return db
+    .select({ id: categoryRules.id, padrao: categoryRules.padrao, categoryId: categoryRules.categoryId })
+    .from(categoryRules)
+    .where(eq(categoryRules.userId, userId))
+    .orderBy(categoryRules.padrao);
+}
+
 /** Categorias usadas quando RECEITA/MOVIMENTACAO não casam com nenhuma regra. */
 export async function getFallbackCategories(userId: string) {
   const rows = await db
