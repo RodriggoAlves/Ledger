@@ -1,0 +1,13 @@
+﻿data,hora,tipo,"origem / destino",valor,"forma de pagamento"
+2026-10-31,21:31,"Pix enviado","OPERADORA TEL","−R$ 33,70","Com saldo"
+2026-10-31,21:31,"Dinheiro resgatado","Do cofrinho Cofrinho Turbinado","+R$ 35,00",
+2026-10-29,23:05,"Pix enviado","99 FOOD LTDA.","−R$ 25,44","Com saldo"
+2026-10-29,17:28,"Pix recebido","FULANO DE TAL","+R$ 12,00",
+2026-10-29,10:00,"Dinheiro guardado","No cofrinho Cofrinho Turbinado","−R$ 2.013,93","Com saldo"
+2026-10-26,21:24,"Compra realizada",GOOGLE,"−R$ 10,00","Com cartão"
+2026-10-25,12:00,"Pix enviado","CICLANO","-R$ 5,00","Com saldo"
+2026-10-24,08:00,"Pix enviado","CICLANO","abc","Com saldo"
+2026-10-23,09:00,"Estorno","LOJA X","+R$ 7,50",
+2026-10-22,10:10,"Pix enviado","BELTRANO","−R$ 10,00","Com saldo"
+2026-10-22,10:10,"Pix enviado","BELTRANO","−R$ 10,00","Com saldo"
+2026-10-21,10:10,"Tarifa","BANCO","−R$ 1,00","Com saldo"
