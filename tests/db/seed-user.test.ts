@@ -9,7 +9,7 @@ import { ensureUserDefaults } from "@/db/seed-user";
 config({ path: ".env.local" });
 const url = process.env.TEST_DATABASE_URL;
 
-describe.skipIf(!url)("ensureUserDefaults (integração)", () => {
+describe.skipIf(!url)("ensureUserDefaults (integração)", { timeout: 30_000 }, () => {
   test("is idempotent", async () => {
     const db = createDb(url!);
     const userId = randomUUID();
@@ -26,7 +26,7 @@ describe.skipIf(!url)("ensureUserDefaults (integração)", () => {
   });
 });
 
-describe.skipIf(!url)("ensureUserDefaults após exclusão (integração)", () => {
+describe.skipIf(!url)("ensureUserDefaults após exclusão (integração)", { timeout: 30_000 }, () => {
   test("does not recreate a deleted default category", async () => {
     const db = createDb(url!);
     const userId = randomUUID();
