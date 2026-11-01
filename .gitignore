@@ -1,0 +1,5 @@
+*.csv
+!**/fixtures/**/*.csv
+node_modules/
+.env*
+.next/
