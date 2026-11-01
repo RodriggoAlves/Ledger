@@ -94,7 +94,7 @@ export function ImportForm({ categoryNames }: { categoryNames: Record<string, st
                     {preview.novas.map((r, i) => (
                       <TableRow key={i}>
                         <TableCell className="whitespace-nowrap">
-                          {new Date(r.dataHora).toLocaleDateString("pt-BR")}
+                          {new Date(r.dataHora).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
                         </TableCell>
                         <TableCell>{r.descricao}</TableCell>
                         <TableCell>

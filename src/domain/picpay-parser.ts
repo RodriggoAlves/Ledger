@@ -73,7 +73,7 @@ export function parsePicPayCsv(content: string): ParseResult {
     occurrences.set(key, n + 1);
 
     rows.push({
-      dataHora: new Date(+dm[1], +dm[2] - 1, +dm[3], +hm[1], +hm[2]),
+      dataHora: new Date(Date.UTC(+dm[1], +dm[2] - 1, +dm[3], +hm[1], +hm[2])),
       tipoOriginal,
       descricao,
       valor,

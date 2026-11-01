@@ -33,7 +33,7 @@ describe("parsePicPayCsv", () => {
 
   test("parses date and time", () => {
     const d = result.rows[0].dataHora;
-    expect([d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes()]).toEqual([
+    expect([d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes()]).toEqual([
       2026, 9, 31, 21, 31,
     ]);
   });
