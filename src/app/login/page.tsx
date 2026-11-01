@@ -1,5 +1,6 @@
 "use client";
 
+import { Wallet } from "lucide-react";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,8 +14,11 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Finanças</CardTitle>
+        <CardHeader className="justify-items-center gap-3 text-center">
+          <span className="bg-brand grid size-12 place-items-center rounded-2xl text-white shadow-[0_10px_30px_-10px_var(--brand-from)]">
+            <Wallet className="size-5" aria-hidden />
+          </span>
+          <CardTitle className="text-xl font-semibold">Entrar no Ledger</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={action} className="space-y-4">

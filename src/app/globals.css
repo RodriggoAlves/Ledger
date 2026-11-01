@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-body);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -49,72 +49,78 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --font-display: var(--font-body);
+  --page-glow: transparent;
+  --background: #d6d8db;
+  --foreground: #121416;
+  --card: #e6e8ea;
+  --card-foreground: #121416;
+  --popover: #eceef0;
+  --popover-foreground: #121416;
+  --primary: #1a7a50;
+  --primary-foreground: #ffffff;
+  --secondary: #cbced2;
+  --secondary-foreground: #121416;
+  --muted: #c9ccd0;
+  --muted-foreground: #43474c;
+  --accent: #c6cace;
+  --accent-foreground: #121416;
+  --destructive: #c03a4b;
+  --border: #b1b5ba;
+  --input: #a6abb1;
+  --ring: #2fa36d;
+  --income: #16774c;
+  --expense: #c03a4b;
+  --brand-from: #34b27a;
+  --brand-to: #1c7a52;
+  --chart-1: #1f8a5b;
+  --chart-2: #4fbf8a;
+  --chart-3: #8fd9b0;
+  --chart-4: #3b6b55;
+  --chart-5: #a3b8ac;
+  --radius: 0.875rem;
+  --sidebar: #e6e8ea;
+  --sidebar-foreground: #121416;
+  --sidebar-primary: #1f8a5b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #c6cace;
+  --sidebar-accent-foreground: #121416;
+  --sidebar-border: #b1b5ba;
+  --sidebar-ring: #2fa36d;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --page-glow: color-mix(in srgb, var(--brand-from) 10%, transparent);
+  --background: #1b1d1f;
+  --foreground: #e6e9e7;
+  --card: #232629;
+  --card-foreground: #e6e9e7;
+  --popover: #2a2e31;
+  --popover-foreground: #e6e9e7;
+  --primary: #4aa877;
+  --primary-foreground: #ffffff;
+  --secondary: #2c3033;
+  --secondary-foreground: #e6e9e7;
+  --muted: #2c3033;
+  --muted-foreground: #9aa29e;
+  --accent: #30363a;
+  --accent-foreground: #e6e9e7;
+  --destructive: #e0707d;
+  --border: rgb(255 255 255 / 0.08);
+  --input: rgb(255 255 255 / 0.12);
+  --ring: #4aa877;
+  --income: #5cbf8b;
+  --expense: #e0707d;
+  --brand-from: #3f9d6c;
+  --brand-to: #256b4b;
+  --sidebar: #232629;
+  --sidebar-foreground: #e6e9e7;
+  --sidebar-primary: #4aa877;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #2c3033;
+  --sidebar-accent-foreground: #e6e9e7;
+  --sidebar-border: rgb(255 255 255 / 0.08);
+  --sidebar-ring: #4aa877;
 }
 
 @layer base {
@@ -123,8 +129,41 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(60rem 36rem at 15% -15%, var(--page-glow), transparent 70%);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .text-income {
+    color: var(--income);
+  }
+  .text-expense {
+    color: var(--expense);
+  }
+  .bg-brand {
+    background-image: linear-gradient(120deg, var(--brand-from), var(--brand-to));
+  }
+  .glass {
+    background: color-mix(in srgb, var(--card) 72%, transparent);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+  /* Gradiente verde do cartão de saldo */
+  .aurora {
+    background:
+      radial-gradient(110% 140% at 0% 0%, #3f9d6c 0%, transparent 55%),
+      radial-gradient(80% 120% at 100% 110%, #2b7a56 0%, transparent 60%),
+      linear-gradient(135deg, #1f4535, #16211c);
   }
 }

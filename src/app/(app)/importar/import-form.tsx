@@ -1,12 +1,13 @@
 "use client";
 
+import { FileSpreadsheet, LoaderCircle, UploadCloud } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
+import { cn } from "cn";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatBRL } from "@/domain/money";
 import { confirmImport, previewImport, type ImportPreview } from "./actions";
@@ -17,6 +18,7 @@ export function ImportForm({ categoryNames }: { categoryNames: Record<string, st
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
+  const [dragging, setDragging] = useState(false);
 
   async function onFile(f: File | undefined) {
     setPreview(null);
@@ -48,8 +50,56 @@ export function ImportForm({ categoryNames }: { categoryNames: Record<string, st
 
   return (
     <div className="space-y-4">
-      <Input type="file" accept=".csv,text/csv" disabled={pending} onChange={(e) => onFile(e.target.files?.[0])} />
-      {pending && <p className="text-sm text-muted-foreground">Processando...</p>}
+      <label
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          if (!pending) onFile(e.dataTransfer.files?.[0]);
+        }}
+        className={cn(
+          "glass flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors focus-within:ring-2 focus-within:ring-ring hover:border-primary/60 hover:bg-accent/40",
+          dragging ? "border-primary bg-accent/50" : "border-border",
+          pending && "pointer-events-none opacity-70",
+        )}
+      >
+        <input
+          type="file"
+          accept=".csv,text/csv"
+          className="sr-only"
+          disabled={pending}
+          onChange={(e) => onFile(e.target.files?.[0])}
+        />
+        <span className="bg-brand grid size-14 place-items-center rounded-2xl text-white shadow-[0_10px_30px_-12px_var(--brand-from)]">
+          {pending ? (
+            <LoaderCircle className="size-6 animate-spin" aria-hidden />
+          ) : file ? (
+            <FileSpreadsheet className="size-6" aria-hidden />
+          ) : (
+            <UploadCloud className="size-6" aria-hidden />
+          )}
+        </span>
+        {file ? (
+          <span>
+            <span className="block font-semibold">{file.name}</span>
+            <span className="text-sm text-muted-foreground">
+              {pending ? "Lendo o arquivo..." : "Clique para escolher outro arquivo"}
+            </span>
+          </span>
+        ) : (
+          <span>
+            <span className="block font-semibold">Arraste o CSV aqui ou clique para escolher</span>
+            <span className="text-sm text-muted-foreground">Arquivo .csv exportado do PicPay</span>
+          </span>
+        )}
+        <span className="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground">
+          {file ? "Trocar arquivo" : "Escolher arquivo"}
+        </span>
+      </label>
       {error && <p className="text-sm text-destructive">{error}</p>}
       {done !== null && (
         <p className="text-sm">

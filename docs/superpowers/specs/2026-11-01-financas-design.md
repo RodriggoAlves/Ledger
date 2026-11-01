@@ -1,4 +1,4 @@
-# Finanças Pessoais — Especificação de Design
+# Ledger (finanças pessoais) — Especificação de Design
 
 Data: 2026-11-01
 Status: aprovado em conversa, aguardando revisão da spec
