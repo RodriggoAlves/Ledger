@@ -1,6 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
-import { extractPdfLines, PdfReadError } from "@/lib/pdf-text";
+import { extractPdfLines, groupLines, PdfReadError } from "@/lib/pdf-text";
 
 const REAL = "PicPay_Fatura_092026.pdf";
 
@@ -19,4 +19,21 @@ describe.skipIf(!existsSync(REAL))("extractPdfLines (fatura real)", () => {
 
 test("rejects bytes that are not a PDF", async () => {
   await expect(extractPdfLines(new TextEncoder().encode("abc"))).rejects.toBeInstanceOf(PdfReadError);
+});
+
+test("joins a description wrapped above and below the date and value", () => {
+  // Coordenadas reais da fatura 10/2026 (página 2).
+  const items = [
+    { str: "28/09", x: 24, y: 540 },
+    { str: "FIN", x: 64, y: 545 },
+    { str: "AMAZONMKTPLC*SAMSUNGEL .", x: 64, y: 535 },
+    { str: "3.199,00", x: 264, y: 540 },
+    { str: "05/10", x: 24, y: 519 },
+    { str: "PAGAMENTO DE FATURA", x: 64, y: 519 },
+    { str: "-7,25", x: 276, y: 519 },
+  ];
+  expect(groupLines(items)).toEqual([
+    "28/09 FIN AMAZONMKTPLC*SAMSUNGEL . 3.199,00",
+    "05/10 PAGAMENTO DE FATURA -7,25",
+  ]);
 });

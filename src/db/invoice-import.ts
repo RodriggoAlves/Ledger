@@ -24,6 +24,7 @@ export async function loadCardState(db: Db, userId: string): Promise<CardState> 
       parcelas: creditPurchases.parcelas,
       id: installments.id,
       numero: installments.numero,
+      valor: installments.valor,
       mes: invoices.mes,
       confirmada: installments.confirmadaPorImportId,
       cancelada: installments.canceladaPorImportId,
@@ -42,7 +43,14 @@ export async function loadCardState(db: Db, userId: string): Promise<CardState> 
       parcelas: r.parcelas,
       installments: [],
     };
-    p.installments.push({ id: r.id, numero: r.numero, mes: r.mes, confirmada: !!r.confirmada, cancelada: !!r.cancelada });
+    p.installments.push({
+      id: r.id,
+      numero: r.numero,
+      mes: r.mes,
+      valor: r.valor,
+      confirmada: !!r.confirmada,
+      cancelada: !!r.cancelada,
+    });
     purchases.set(r.purchaseId, p);
   }
   return { importedMonths: imported.map((i) => i.mes), purchases: [...purchases.values()] };
@@ -146,6 +154,9 @@ export async function applyInvoiceImport(
         .update(installments)
         .set({ invoiceId: await idFor(m.mes) })
         .where(mine(installments.id, [m.installmentId]));
+    }
+    for (const a of plan.ajustarValor) {
+      await tx.update(installments).set({ valor: a.valor }).where(mine(installments.id, [a.installmentId]));
     }
     if (plan.cancelar.length) {
       await tx

@@ -12,7 +12,7 @@ export type CardState = {
     chave: string;
     descricao: string;
     parcelas: number;
-    installments: { id: string; numero: number; mes: MonthKey; confirmada: boolean; cancelada: boolean }[];
+    installments: { id: string; numero: number; mes: MonthKey; valor: number; confirmada: boolean; cancelada: boolean }[];
   }[];
 };
 
@@ -40,11 +40,16 @@ export type InvoiceImportPlan = {
   /** Reprojeções: parcela que veio (ou vem) em outro mês do previsto. */
   mover: { installmentId: string; mes: MonthKey }[];
   cancelar: { installmentId: string; descricao: string; numero: number; parcelas: number }[];
+  /** Parcela confirmada (e as projetadas seguintes) com valor diferente do previsto, ex.: sobra do arredondamento na 1ª. */
+  ajustarValor: { installmentId: string; valor: number }[];
   pagarMes: MonthKey | null;
   pagaEm: Date | null;
   ignoradas: number;
   semCategoria: number;
 };
+
+/** Chave sem valor e ocorrência: "descrição|data|parcelas". */
+const looseKey = (chave: string) => chave.split("|").slice(0, 3).join("|");
 
 export class InvoiceAlreadyImportedError extends Error {
   constructor(mes: MonthKey) {
@@ -71,6 +76,19 @@ export function buildInvoiceImportPlan(
 
   const byChave = new Map(state.purchases.map((p) => [p.chave, p]));
   const seen = new Set<string>();
+  /**
+   * Reserva para parcelados: mesma descrição, data e nº de parcelas, com a parcela em aberto.
+   * A 1ª parcela costuma ter a sobra do arredondamento, então o valor (parte da chave) muda.
+   */
+  const looseMatch = (chave: string, k: number) => {
+    const loose = looseKey(chave);
+    return state.purchases.find(
+      (p) =>
+        !seen.has(p.id) &&
+        looseKey(p.chave) === loose &&
+        p.installments.some((i) => i.numero === k && !i.confirmada && !i.cancelada),
+    );
+  };
   const plan: InvoiceImportPlan = {
     mes,
     fechamento: parsed.fechamento,
@@ -80,6 +98,7 @@ export function buildInvoiceImportPlan(
     confirmar: [],
     mover: [],
     cancelar: [],
+    ajustarValor: [],
     pagarMes: null,
     pagaEm: null,
     ignoradas: 0,
@@ -94,7 +113,7 @@ export function buildInvoiceImportPlan(
     }
 
     const k = line.parcela?.numero ?? 1;
-    const existing = byChave.get(line.chave);
+    const existing = byChave.get(line.chave) ?? (line.parcela ? looseMatch(line.chave, k) : undefined);
     if (!existing) {
       const parcelas = line.parcela?.total ?? 1;
       const categoryId = matchCategory(line.descricao, rules);
@@ -129,6 +148,7 @@ export function buildInvoiceImportPlan(
       if (next.numero < k || (next.numero > k && (next.confirmada || next.cancelada))) continue;
       const expected = addMonths(mes, next.numero - k);
       if (next.mes !== expected) plan.mover.push({ installmentId: next.id, mes: expected });
+      if (next.valor !== line.valor) plan.ajustarValor.push({ installmentId: next.id, valor: line.valor });
     }
   }
 

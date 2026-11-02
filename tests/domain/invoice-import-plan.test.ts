@@ -48,6 +48,7 @@ function stateAfter(p: InvoiceImportPlan): CardState {
         id: `${n.descricao}#${i.numero}`,
         numero: i.numero,
         mes: i.mes,
+        valor: n.valorParcela,
         confirmada: i.confirmada,
         cancelada: false,
       })),
@@ -121,9 +122,9 @@ describe("next month", () => {
           descricao: "AMAZON BR",
           parcelas: 10,
           installments: [
-            { id: "i8", numero: 8, mes: "2026-09", confirmada: true, cancelada: false },
-            { id: "i9", numero: 9, mes: "2026-11", confirmada: false, cancelada: false },
-            { id: "i10", numero: 10, mes: "2026-12", confirmada: false, cancelada: false },
+            { id: "i8", numero: 8, mes: "2026-09", valor: 23088, confirmada: true, cancelada: false },
+            { id: "i9", numero: 9, mes: "2026-11", valor: 23088, confirmada: false, cancelada: false },
+            { id: "i10", numero: 10, mes: "2026-12", valor: 23088, confirmada: false, cancelada: false },
           ],
         },
       ],
@@ -164,4 +165,21 @@ test("refuses a month older than the latest imported", () => {
   expect(() => plan(september, { importedMonths: ["2026-10"], purchases: [] })).toThrow(
     "Importe as faturas em ordem: a de outubro de 2026 já foi importada",
   );
+});
+
+describe("installment value differs by the rounding remainder", () => {
+  // Setembro: MERCADOLIVRE*M 1/10 por 146,47 (sobra na 1ª); outubro: 2/10 por 146,43.
+  const state = stateAfter(plan(september));
+  const p = plan(october("16/09 MERCADOLIVRE*MPARC02/10 146,43"), state);
+
+  test("still recognizes the same purchase", () => {
+    expect(p.novas.some((n) => n.descricao === "MERCADOLIVRE*M" && n.parcelas === 10 && n.parcelaInicial === 2)).toBe(false);
+    expect(p.confirmar).toContainEqual({ installmentId: "MERCADOLIVRE*M#2" });
+    expect(p.cancelar.map((c) => c.installmentId)).not.toContain("MERCADOLIVRE*M#2");
+  });
+
+  test("updates the confirmed and the following projected installments to the real value", () => {
+    expect(p.ajustarValor).toContainEqual({ installmentId: "MERCADOLIVRE*M#2", valor: 14643 });
+    expect(p.ajustarValor).toContainEqual({ installmentId: "MERCADOLIVRE*M#10", valor: 14643 });
+  });
 });

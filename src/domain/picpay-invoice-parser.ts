@@ -26,7 +26,8 @@ export class InvoiceTotalMismatchError extends Error {
 }
 
 const HEADER = /Vencimento:\s*(\d{2})\/(\d{2})\/(\d{4})\s*\|\s*Fechamento:\s*(\d{2})\/(\d{2})\/(\d{4})/;
-const SECTION_START = /^Transações Nacionais$/;
+/** "Operações de crédito contratados" (IOF, financiamentos) vem antes de "Transações Nacionais". */
+const SECTION_START = /^(Transações Nacionais|Operações de crédito contratados)$/;
 const TOTAL = /^Total geral dos lançamentos\s+([\d.]+,\d{2})$/;
 const CARD = /^Picpay Card(?: final (\d{4}))?$/;
 const LINE = /^(\d{2})\/(\d{2})\s+(.+?)\s+(-?[\d.]+,\d{2})$/;
@@ -64,7 +65,8 @@ export function parsePicPayInvoice(lines: string[]): ParsedInvoice {
     linhas.push({
       dia: +m[1],
       mes: +m[2],
-      descricao: parc ? m[3].slice(0, parc.index).trim() : m[3],
+      // Descrição quebrada em duas linhas no PDF termina com " ." solto.
+      descricao: (parc ? m[3].slice(0, parc.index) : m[3]).replace(/\s+\.$/, "").trim(),
       valor: cents(m[4]),
       parcela: parc ? { numero: +parc[1], total: +parc[2] } : null,
       cartaoFinal,

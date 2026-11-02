@@ -59,3 +59,25 @@ test("rejects when sum differs from total", () => {
     expect((e as InvoiceTotalMismatchError).diferenca).toBe(2399);
   }
 });
+
+test("reads the credit operations section (IOF) before the national transactions", () => {
+  const parsed = parsePicPayInvoice([
+    "Vencimento: 05/11/2026 | Fechamento: 29/10/2026",
+    "Picpay Card",
+    "Operações de crédito contratados",
+    "Data Operação Valor (R$)",
+    "28/09 IOF DIARIO PARCELADO 10,04",
+    "28/09 IOF ADICIONAL PARCELADO 12,24",
+    "Transações Nacionais",
+    "Data Estabelecimento Valor (R$)",
+    "28/09 FIN AMAZONMKTPLC*SAMSUNGEL . 3.199,00",
+    "05/10 PAGAMENTO DE FATURA -7,25",
+    "Total geral dos lançamentos 3.221,28",
+  ]);
+  expect(parsed.linhas.map((l) => [l.descricao, l.valor, l.cartaoFinal])).toEqual([
+    ["IOF DIARIO PARCELADO", 1004, null],
+    ["IOF ADICIONAL PARCELADO", 1224, null],
+    ["FIN AMAZONMKTPLC*SAMSUNGEL", 319900, null],
+    ["PAGAMENTO DE FATURA", -725, null],
+  ]);
+});

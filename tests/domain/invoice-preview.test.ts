@@ -16,6 +16,7 @@ const plan: InvoiceImportPlan = {
     { installmentId: "c", descricao: "AMAZON BR", numero: 9, parcelas: 10 },
     { installmentId: "d", descricao: "AMAZON BR", numero: 10, parcelas: 10 },
   ],
+  ajustarValor: [],
   pagarMes: "2026-09",
   pagaEm: new Date(Date.UTC(2026, 9, 5)),
   ignoradas: 1,
