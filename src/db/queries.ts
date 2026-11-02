@@ -4,7 +4,7 @@ import type { Rule } from "@/domain/categorization";
 import { monthRange, type MonthKey } from "@/domain/month";
 import type { TxType } from "@/domain/picpay-parser";
 import { db } from "./client";
-import { categories, categoryRules, transactions } from "./schema";
+import { categories, categoryRules, invoices, transactions } from "./schema";
 
 export async function getCategories(userId: string) {
   return db.select().from(categories).where(eq(categories.userId, userId)).orderBy(categories.nome);
@@ -44,15 +44,14 @@ export async function getExistingHashes(userId: string, hashes: string[]): Promi
   return new Set(rows.map((r) => r.hash));
 }
 
-/** Meses com transações, mais recente primeiro. */
+/** Meses com transações ou com fatura do cartão, mais recente primeiro. */
 export async function getAvailableMonths(userId: string): Promise<MonthKey[]> {
   const month = sql<string>`to_char(${transactions.dataHora}, 'YYYY-MM')`;
-  const rows = await db
-    .selectDistinct({ month })
-    .from(transactions)
-    .where(eq(transactions.userId, userId))
-    .orderBy(desc(month));
-  return rows.map((r) => r.month);
+  const [txMonths, invoiceMonths] = await Promise.all([
+    db.selectDistinct({ month }).from(transactions).where(eq(transactions.userId, userId)),
+    db.selectDistinct({ month: invoices.mes }).from(invoices).where(eq(invoices.userId, userId)),
+  ]);
+  return [...new Set([...txMonths, ...invoiceMonths].map((r) => r.month))].sort().reverse();
 }
 
 export type TransactionFilters = { month: MonthKey; categoryId?: string | "none"; tipo?: TxType };

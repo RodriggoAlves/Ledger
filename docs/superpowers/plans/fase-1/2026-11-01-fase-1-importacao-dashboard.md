@@ -8,7 +8,7 @@
 
 **Tech Stack:** Next.js 15, TypeScript, Tailwind, shadcn/ui, Recharts, Drizzle ORM + `postgres`, Supabase Auth (`@supabase/ssr`), Vitest, `papaparse`.
 
-**Spec:** `docs/superpowers/specs/2026-11-01-financas-design.md` (seções 2, 3, 4, 7 itens 1–4 e 8, 9, 10)
+**Spec:** `docs/superpowers/specs/geral/2026-11-01-financas-design.md` (seções 2, 3, 4, 7 itens 1–4 e 8, 9, 10)
 
 ## Global Constraints
 

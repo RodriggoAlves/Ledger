@@ -2,14 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/db/client";
+import { CreditError } from "@/db/credit";
+import { deleteImport } from "@/db/imports";
 import { getExistingHashes, getFallbackCategories, getRules } from "@/db/queries";
 import { imports, transactions } from "@/db/schema";
-import { chunk } from "@/domain/guards";
+import { chunk, isUuid } from "@/domain/guards";
 import { buildImportPlan, type ImportPlan } from "@/domain/import-plan";
 import { InvalidPicPayFileError, parsePicPayCsv } from "@/domain/picpay-parser";
 import { requireUserId } from "@/lib/auth";
 
 const MAX_CHARS = 2 * 1024 * 1024;
+const NOT_FOUND = "Importação não encontrada";
 
 class FileTooLargeError extends Error {
   constructor() {
@@ -64,6 +67,21 @@ export async function previewImport(content: string): Promise<{ preview?: Import
     };
   } catch (e) {
     return { error: errorMessage(e) };
+  }
+}
+
+export async function deleteImportAction(importId: string): Promise<{ apagadas?: number; error?: string }> {
+  const userId = await requireUserId();
+  if (typeof importId !== "string" || !isUuid(importId)) return { error: NOT_FOUND };
+  try {
+    const res = await deleteImport(db, userId, importId);
+    if (!res) return { error: NOT_FOUND };
+    revalidatePath("/", "layout");
+    return res;
+  } catch (e) {
+    if (e instanceof CreditError) return { error: e.message };
+    console.error(e);
+    return { error: "Não foi possível excluir a importação" };
   }
 }
 

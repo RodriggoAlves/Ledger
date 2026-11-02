@@ -16,6 +16,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { formatBRL } from "@/domain/money";
 import type { TxType } from "@/domain/picpay-parser";
 import { createRuleFromTransaction, updateTransaction } from "./actions";
+import { CreditCell } from "./convert-dialog";
 
 const NONE = "__none__";
 
@@ -32,9 +33,18 @@ export type RowData = {
   valor: number;
   tipo: TxType;
   categoryId: string | null;
+  convertidaCredito: boolean;
 };
 
-export function TransactionRow({ tx, categories }: { tx: RowData; categories: { id: string; nome: string }[] }) {
+export function TransactionRow({
+  tx,
+  categories,
+  hasCard,
+}: {
+  tx: RowData;
+  categories: { id: string; nome: string }[];
+  hasCard: boolean;
+}) {
   const [pending, startTransition] = useTransition();
   const [ask, setAsk] = useState<{ categoryId: string; nome: string } | null>(null);
 
@@ -103,9 +113,17 @@ export function TransactionRow({ tx, categories }: { tx: RowData; categories: { 
         </Select>
       </TableCell>
       <TableCell
-        className={`text-right whitespace-nowrap ${tx.valor < 0 ? "text-red-600 dark:text-red-400" : ""}`}
+        className={`text-right whitespace-nowrap ${tx.valor < 0 ? "text-expense" : ""}`}
       >
         {formatBRL(tx.valor)}
+      </TableCell>
+      <TableCell>
+        <CreditCell
+          id={tx.id}
+          descricao={tx.descricao}
+          convertida={tx.convertidaCredito}
+          canConvert={hasCard && tx.tipo === "GASTO"}
+        />
       </TableCell>
 
       <Dialog open={ask !== null} onOpenChange={(open) => !open && setAsk(null)}>

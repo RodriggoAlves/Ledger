@@ -63,5 +63,73 @@ export const transactions = pgTable(
   (t) => [unique().on(t.userId, t.hashUnico), index().on(t.userId, t.dataHora)],
 );
 
+export const creditCards = pgTable("credit_cards", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull().unique(),
+  nome: text("nome").notNull(),
+  diaFechamento: integer("dia_fechamento").notNull(),
+  diaVencimento: integer("dia_vencimento").notNull(),
+});
+
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    cardId: uuid("card_id")
+      .notNull()
+      .references(() => creditCards.id, { onDelete: "cascade" }),
+    /** "AAAA-MM" do mês de fechamento. */
+    mes: text("mes").notNull(),
+    fechamento: timestamp("fechamento").notNull(),
+    vencimento: timestamp("vencimento").notNull(),
+    paga: boolean("paga").notNull().default(false),
+    pagaEm: timestamp("paga_em", { withTimezone: true }),
+  },
+  (t) => [unique().on(t.cardId, t.mes)],
+);
+
+export const creditPurchases = pgTable(
+  "credit_purchases",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    cardId: uuid("card_id")
+      .notNull()
+      .references(() => creditCards.id, { onDelete: "cascade" }),
+    descricao: text("descricao").notNull(),
+    categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
+    valorTotal: integer("valor_total").notNull(),
+    parcelas: integer("parcelas").notNull(),
+    dataCompra: timestamp("data_compra").notNull(),
+    transactionId: uuid("transaction_id")
+      .unique()
+      .references(() => transactions.id, { onDelete: "set null" }),
+  },
+  (t) => [index().on(t.userId)],
+);
+
+export const installments = pgTable(
+  "installments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    purchaseId: uuid("purchase_id")
+      .notNull()
+      .references(() => creditPurchases.id, { onDelete: "cascade" }),
+    invoiceId: uuid("invoice_id")
+      .notNull()
+      .references(() => invoices.id, { onDelete: "restrict" }),
+    numero: integer("numero").notNull(),
+    valor: integer("valor").notNull(),
+    paga: boolean("paga").notNull().default(false),
+  },
+  (t) => [index().on(t.userId), index().on(t.invoiceId)],
+);
+
 export type Category = typeof categories.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
+export type CreditCard = typeof creditCards.$inferSelect;
+export type Invoice = typeof invoices.$inferSelect;
+export type CreditPurchase = typeof creditPurchases.$inferSelect;
+export type Installment = typeof installments.$inferSelect;

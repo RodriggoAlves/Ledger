@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { summarizeByCategory } from "@/domain/summary";
+import { installmentsAsTxs, summarizeByCategory } from "@/domain/summary";
 import type { TxType } from "@/domain/picpay-parser";
 
 const cats = [
@@ -47,4 +47,11 @@ describe("summarizeByCategory", () => {
   test("empty input", () => {
     expect(summarizeByCategory([], cats)).toEqual([]);
   });
+});
+
+test("counts credit installments and skips the converted transaction", () => {
+  const txs = [tx(-9000, "alim", "GASTO", true), ...installmentsAsTxs([{ valor: 3000, categoryId: "alim" }])];
+  expect(summarizeByCategory(txs, cats)).toEqual([
+    { categoryId: "alim", nome: "Alimentação", cor: "#f00", total: 3000, percentual: 100 },
+  ]);
 });

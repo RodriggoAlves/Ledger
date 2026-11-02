@@ -1,10 +1,12 @@
 import { ArrowDownLeft, ArrowUpRight, Crown, Upload } from "lucide-react";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
+import { db } from "@/db/client";
+import { getInstallmentsForMonth } from "@/db/credit";
 import { getAvailableMonths, getCategories, getTransactions } from "@/db/queries";
 import { formatBRL } from "@/domain/money";
 import { formatMonth, parseMonth } from "@/domain/month";
-import { summarizeByCategory } from "@/domain/summary";
+import { installmentsAsTxs, summarizeByCategory } from "@/domain/summary";
 import { requireUserId } from "@/lib/auth";
 import { CategoryDonut } from "./category-donut";
 import { MonthPills } from "./month-pills";
@@ -34,8 +36,12 @@ export default async function DashboardPage({ searchParams }: Props) {
   }
 
   const month = parseMonth(sp.mes) ?? months[0];
-  const [txs, categories] = await Promise.all([getTransactions(userId, { month }), getCategories(userId)]);
-  const summary = summarizeByCategory(txs, categories);
+  const [txs, categories, parcelas] = await Promise.all([
+    getTransactions(userId, { month }),
+    getCategories(userId),
+    getInstallmentsForMonth(db, userId, month),
+  ]);
+  const summary = summarizeByCategory([...txs, ...installmentsAsTxs(parcelas)], categories);
   const entradas = txs.filter((t) => t.tipo === "RECEITA");
   const receitas = entradas.reduce((s, t) => s + t.valor, 0);
   const gastos = summary.reduce((s, c) => s + c.total, 0);

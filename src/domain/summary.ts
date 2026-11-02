@@ -12,6 +12,11 @@ export type CategoryTotal = {
 type SummaryTx = { valor: number; tipo: TxType; convertidaCredito: boolean; categoryId: string | null };
 type SummaryCategory = { id: string; nome: string; cor: string };
 
+/** Parcelas de cartão (valor positivo) no formato de transação de gasto, para somar nos totais. */
+export function installmentsAsTxs(parcelas: { valor: number; categoryId: string | null }[]): SummaryTx[] {
+  return parcelas.map((p) => ({ valor: -p.valor, tipo: "GASTO", convertidaCredito: false, categoryId: p.categoryId }));
+}
+
 const UNCATEGORIZED = { nome: "Sem categoria", cor: "#a1a1aa" };
 
 /** Gastos do conjunto por categoria; ignora receitas, movimentações e compras convertidas em crédito. */

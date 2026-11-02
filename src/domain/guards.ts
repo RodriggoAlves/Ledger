@@ -8,6 +8,12 @@ export function chunk<T>(items: T[], size: number): T[][] {
   return out;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuid(value: string): boolean {
+  return UUID.test(value);
+}
+
 /** Argumentos de server action não são confiáveis: copia só os campos editáveis. */
 export function sanitizeTxUpdate(data: Record<string, unknown>): { categoryId?: string | null; tipo?: TxType } {
   const out: { categoryId?: string | null; tipo?: TxType } = {};

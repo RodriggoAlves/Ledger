@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { SearchParamSelect } from "@/components/search-param-select";
 import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { db } from "@/db/client";
+import { getCard } from "@/db/credit";
 import { getAvailableMonths, getCategories, getTransactions } from "@/db/queries";
 import { formatMonth, parseMonth } from "@/domain/month";
 import type { TxType } from "@/domain/picpay-parser";
@@ -30,7 +32,7 @@ export default async function TransacoesPage({ searchParams }: Props) {
   const tipo = sp.tipo && sp.tipo in TIPO_LABEL ? (sp.tipo as TxType) : undefined;
   const categoryId =
     sp.categoria === "none" || categories.some((c) => c.id === sp.categoria) ? sp.categoria : undefined;
-  const txs = await getTransactions(userId, { month, categoryId, tipo });
+  const [txs, card] = await Promise.all([getTransactions(userId, { month, categoryId, tipo }), getCard(db, userId)]);
 
   return (
     <div className="space-y-4">
@@ -67,6 +69,7 @@ export default async function TransacoesPage({ searchParams }: Props) {
                 <TableHead>Tipo</TableHead>
                 <TableHead>Categoria</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
+                <TableHead>Crédito</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -74,6 +77,7 @@ export default async function TransacoesPage({ searchParams }: Props) {
                 <TransactionRow
                   key={t.id}
                   categories={categories}
+                  hasCard={card !== null}
                   tx={{
                     id: t.id,
                     dataHora: t.dataHora.toISOString(),
@@ -81,6 +85,7 @@ export default async function TransacoesPage({ searchParams }: Props) {
                     valor: t.valor,
                     tipo: t.tipo,
                     categoryId: t.categoryId,
+                    convertidaCredito: t.convertidaCredito,
                   }}
                 />
               ))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, LayoutDashboard, Settings2, Upload } from "lucide-react";
+import { ArrowLeftRight, CreditCard, LayoutDashboard, Settings2, Upload } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "cn";
@@ -8,6 +8,7 @@ import { cn } from "cn";
 const NAV = [
   { href: "/", label: "Visão geral", short: "Início", icon: LayoutDashboard },
   { href: "/transacoes", label: "Transações", short: "Transações", icon: ArrowLeftRight },
+  { href: "/cartao", label: "Cartão", short: "Cartão", icon: CreditCard },
   { href: "/importar", label: "Importar", short: "Importar", icon: Upload },
   { href: "/configuracoes", label: "Configurações", short: "Ajustes", icon: Settings2 },
 ];
@@ -55,7 +56,7 @@ export function BottomNav() {
       aria-label="Principal"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
     >
-      <ul className="mx-auto grid max-w-md grid-cols-4">
+      <ul className="mx-auto grid max-w-lg grid-cols-5">
         {NAV.map((item) => {
           const active = isActive(item.href);
           return (
@@ -70,7 +71,7 @@ export function BottomNav() {
               >
                 <span
                   className={cn(
-                    "grid h-7 w-12 place-items-center rounded-full transition-colors",
+                    "grid h-7 w-11 place-items-center rounded-full transition-colors",
                     active && "bg-[color-mix(in_srgb,var(--primary)_18%,transparent)]",
                   )}
                 >
