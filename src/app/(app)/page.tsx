@@ -11,6 +11,7 @@ import { invoiceCard } from "@/domain/invoice-card";
 import { formatBRL } from "@/domain/money";
 import { currentMonth, formatMonth, parseMonth } from "@/domain/month";
 import { summarizeSpending } from "@/domain/summary";
+import { transactionsHref } from "@/domain/transactions-link";
 import { requireUserId } from "@/lib/auth";
 import { CategoryDonut } from "./category-donut";
 
@@ -55,6 +56,11 @@ export default async function DashboardPage({ searchParams }: Props) {
   const usado = receitas > 0 ? Math.max(0, Math.min(100, Math.round((gastos / receitas) * 100))) : gastos > 0 ? 100 : 0;
   const top = resumo.categorias[0];
   const cartao = invoiceCard(fatura, -entriesTotal(filterEntries(entries, { origem: "CARTAO" })), month);
+  // Cada card abre em Transações a lista que soma o seu valor; sem nada a listar, não é clicável.
+  const gastosHref = transactionsHref(month, { tipo: "GASTO" });
+  const entradasLink = entradas.length ? transactionsHref(month, { tipo: "RECEITA" }) : null;
+  const gastosLink = entries.some((e) => e.tipo === "GASTO") ? gastosHref : null;
+  const topLink = top ? transactionsHref(month, { categoryId: top.categoryId ?? "none", tipo: "GASTO" }) : null;
 
   return (
     <div className="space-y-6">
@@ -93,8 +99,18 @@ export default async function DashboardPage({ searchParams }: Props) {
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <HeroFigure icon={<ArrowDownLeft className="size-3.5" aria-hidden />} label="Entradas" value={receitas} />
-              <HeroFigure icon={<ArrowUpRight className="size-3.5" aria-hidden />} label="Gastos" value={gastos} />
+              <HeroFigure
+                icon={<ArrowDownLeft className="size-3.5" aria-hidden />}
+                label="Entradas"
+                value={receitas}
+                href={entradasLink}
+              />
+              <HeroFigure
+                icon={<ArrowUpRight className="size-3.5" aria-hidden />}
+                label="Gastos"
+                value={gastos}
+                href={gastosLink}
+              />
             </div>
           </div>
         </div>
@@ -107,6 +123,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           label="Entradas"
           value={formatBRL(receitas)}
           hint={`${entradas.length} ${entradas.length === 1 ? "recebimento" : "recebimentos"}`}
+          href={entradasLink}
         />
         <Stat
           icon={<ArrowUpRight className="size-4" />}
@@ -114,6 +131,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           label="Gastos"
           value={formatBRL(gastos)}
           hint={`em ${resumo.categorias.length} ${resumo.categorias.length === 1 ? "categoria" : "categorias"}`}
+          href={gastosLink}
         />
         <Stat
           icon={<CreditCard className="size-4" />}
@@ -129,13 +147,14 @@ export default async function DashboardPage({ searchParams }: Props) {
           label="Onde mais gastou"
           value={top ? top.nome : "Nada ainda"}
           hint={top ? `${formatBRL(top.total)}, ${top.percentual}% dos gastos` : "Sem gastos no mês"}
+          href={topLink}
         />
       </div>
 
       <Card className="gap-6">
         <div className="flex items-baseline justify-between px-(--card-spacing)">
           <h2 className="text-lg font-semibold">Gastos por categoria</h2>
-          <Link href={`/transacoes?mes=${month}&tipo=GASTO`} className="text-sm text-primary hover:underline">
+          <Link href={gastosHref} className="text-sm text-primary hover:underline">
             Ver transações
           </Link>
         </div>
@@ -155,7 +174,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 {resumo.categorias.map((c) => (
                   <li key={c.categoryId ?? "none"}>
                     <Link
-                      href={`/transacoes?mes=${month}&categoria=${c.categoryId ?? "none"}&tipo=GASTO`}
+                      href={transactionsHref(month, { categoryId: c.categoryId ?? "none", tipo: "GASTO" })}
                       className="block rounded-xl px-3 py-2.5 transition-colors hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     >
                       <span className="flex items-center gap-3">
@@ -200,14 +219,36 @@ export default async function DashboardPage({ searchParams }: Props) {
   );
 }
 
-function HeroFigure({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
-  return (
-    <div className="rounded-2xl bg-white/12 p-3 ring-1 ring-white/20 backdrop-blur">
+function HeroFigure({
+  icon,
+  label,
+  value,
+  href,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  /** Com link, o quadrinho inteiro é clicável. */
+  href?: string | null;
+}) {
+  const box = "rounded-2xl bg-white/12 p-3 ring-1 ring-white/20 backdrop-blur";
+  const content = (
+    <>
       <p className="flex items-center gap-1.5 text-xs text-white/75">
         {icon} {label}
       </p>
       <p className="mt-1 font-display font-semibold tabular-nums">{formatBRL(value)}</p>
-    </div>
+    </>
+  );
+  return href ? (
+    <Link
+      href={href}
+      className={`block ${box} transition-shadow hover:ring-white/50 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none`}
+    >
+      {content}
+    </Link>
+  ) : (
+    <div className={box}>{content}</div>
   );
 }
 

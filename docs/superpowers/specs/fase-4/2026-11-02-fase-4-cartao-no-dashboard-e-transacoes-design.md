@@ -1,7 +1,7 @@
 # Fase 4 — Fatura do cartão no Dashboard e em Transações — Especificação de Design
 
 Data: 2026-11-02
-Status: aprovado em conversa, aguardando revisão da spec
+Status: aprovado em conversa, aguardando revisão da spec. Adendo de 2026-11-02 aprovado em conversa: cards do Dashboard abrem Transações filtrada (seção 4, "Cards clicáveis").
 Specs relacionadas: `docs/superpowers/specs/geral/2026-11-01-financas-design.md` (seções 7 e 8) e `docs/superpowers/specs/fase-3/2026-11-01-fase-3-fatura-picpay-design.md` (seção 8, Dashboard)
 
 ## 1. Contexto e objetivo
@@ -23,6 +23,7 @@ Exemplo real (out/2026, categoria Setup):
 - Clicar numa categoria do Dashboard abre em Transações uma lista cujo total é igual ao valor da categoria.
 - O card "Fatura do cartão" mostra o valor exato da fatura do mês (R$ 5.879,10 em out/2026) e, ao clicar, abre em Transações as compras dessa fatura, com o mesmo total.
 - As compras do cartão aparecem uma a uma em Transações, identificadas como compra no crédito.
+- Clicar em Entradas, Gastos ou Onde mais gastou (cards e quadrinhos do banner do Saldo) abre Transações já filtrada, com o mesmo total do card.
 
 ## 2. Regras decididas
 
@@ -81,6 +82,20 @@ Uma única função monta a lista de **lançamentos** de um mês. Dashboard, car
 - Quando houver créditos (categorias negativas), a lista termina com a linha `Créditos e estornos` e o valor negativo. A linha não é clicável.
 - Clicar numa categoria continua abrindo `/transacoes?mes=…&categoria=…&tipo=GASTO`; agora a lista inclui as linhas do cartão.
 
+**Cards clicáveis** (adendo). Cada número do topo do Dashboard leva à lista que o compõe, no mês aberto:
+
+| Card | Clique | Total em Transações |
+|---|---|---|
+| Entradas (card e quadrinho do banner) | `/transacoes?mes=AAAA-MM&tipo=RECEITA` | igual ao card |
+| Gastos (card e quadrinho do banner) | `/transacoes?mes=AAAA-MM&tipo=GASTO` (conta e cartão) | −(valor do card) |
+| Onde mais gastou | `/transacoes?mes=AAAA-MM&categoria=<id ou none>&tipo=GASTO` | −(valor da categoria) |
+| Fatura do cartão | como na tabela acima | −(valor do card) |
+
+- Os filtros chegam preenchidos nos selects de Transações; o usuário pode trocar ou limpar.
+- Sem nada para listar, o card não é clicável (como a Fatura sem fatura): Entradas sem recebimentos, Gastos sem nenhum lançamento de tipo Gasto, Onde mais gastou com `Nada ainda`.
+- Hover e foco: os cards usam o mesmo realce da Fatura; os quadrinhos do banner ganham borda branca mais forte e foco visível.
+- Uma função monta a URL de Transações a partir do mês e dos filtros (`transactionsHref`); cards, link "Ver transações", linhas de categoria e card da fatura usam a mesma função.
+
 ## 5. Transações
 
 - **Filtros:** mês, categoria, tipo e o novo **origem** (`Todas as origens`, `Conta`, `Cartão`; parâmetro `origem=CONTA|CARTAO`).
@@ -117,7 +132,8 @@ Testes puros (sem banco):
 - etiquetas de cada tipo de linha;
 - resumo de gastos: categoria negativa vira crédito e reduz o total;
 - **consistência** num mês com "pula compra": Gastos = −soma dos Gastos; cada categoria = −soma filtrada por ela; card = −soma do Cartão = total da fatura;
-- card da fatura: valor, texto e link em cada situação da tabela da seção 4.
+- card da fatura: valor, texto e link em cada situação da tabela da seção 4;
+- link de Transações (`transactionsHref`): só o mês, cada filtro, categoria `none`, filtros combinados e ordem dos parâmetros (`mes`, `categoria`, `tipo`, `origem`).
 
 Testes de banco (pulados sem `TEST_DATABASE_URL`, como os da Fase 3): a consulta do mês traz as duas origens, exclui parcelas canceladas e dados de outro usuário; a fatura do mês é encontrada pelo mês de fechamento.
 

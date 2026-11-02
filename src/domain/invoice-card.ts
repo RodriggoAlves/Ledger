@@ -1,6 +1,7 @@
 import type { InvoiceStatus } from "./invoice";
 import { formatBRL } from "./money";
 import type { MonthKey } from "./month";
+import { transactionsHref } from "./transactions-link";
 
 /** Conteúdo do card "Fatura do cartão" do Dashboard. */
 export type InvoiceCard = { value: string; hint: string; href: string | null };
@@ -19,5 +20,5 @@ export function invoiceCard(
       ? "Projetada · a fatura ainda não fechou"
       : `${STATUS_LABEL[invoice.status]} · vence ${invoice.vencimento.toLocaleDateString("pt-BR", { timeZone: "UTC" })}`;
   // `|| 0` troca -0 (fatura sem parcelas ativas) por 0, que o Intl formataria como "-R$ 0,00".
-  return { value: formatBRL(total || 0), hint, href: `/transacoes?mes=${mes}&origem=CARTAO` };
+  return { value: formatBRL(total || 0), hint, href: transactionsHref(mes, { origem: "CARTAO" }) };
 }

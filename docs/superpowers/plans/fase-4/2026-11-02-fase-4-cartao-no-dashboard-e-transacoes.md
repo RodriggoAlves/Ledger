@@ -49,6 +49,7 @@
 | `src/app/(app)/page.tsx` | Dashboard com a lista de lançamentos, card e linha de créditos |
 | `src/app/(app)/transacoes/page.tsx`, `transaction-row.tsx` | filtro de origem, total, linhas do cartão |
 | `src/app/(app)/cartao/purchase-category.tsx` | movido de `cartao/[faturaId]/`, usado também em Transações |
+| `src/domain/transactions-link.ts` (novo, Task 7) | `transactionsHref`: URL de Transações com mês e filtros |
 
 ---
 
@@ -344,3 +345,55 @@
   - Clicar em Setup no Dashboard de out/2026 → total `-R$ 4.333,59`, com as 4 linhas do cartão.
   - Mudar a categoria de uma linha do cartão → muda na compra (conferir no detalhe da fatura e nas outras parcelas); o diálogo fala em "compras sem categoria". Linhas da conta continuam editando tipo e categoria.
   - `?origem=xyz` → mostra todas as origens.
+
+---
+
+### Task 7: Cards do Dashboard abrem Transações filtrada
+
+Spec: seção 4, "Cards clicáveis".
+
+**Files:**
+- Create: `src/domain/transactions-link.ts`
+- Test: `tests/domain/transactions-link.test.ts`
+- Modify: `src/domain/invoice-card.ts`, `src/app/(app)/page.tsx`
+
+**Interfaces:**
+- Consumes: `EntryFilters` (Task 1); `MonthKey`; `Stat` com `href` (Task 5).
+- Produces:
+  ```ts
+  // src/domain/transactions-link.ts
+  /** Parâmetros na ordem mes, categoria, tipo, origem; filtro ausente fica fora da URL. */
+  export function transactionsHref(mes: MonthKey, filters?: EntryFilters): string;
+  ```
+
+- [ ] **Step 1: Write the failing tests** em `tests/domain/transactions-link.test.ts`:
+  - `month only` → `transactionsHref("2026-10")` = `"/transacoes?mes=2026-10"`
+  - `income` → `transactionsHref("2026-10", { tipo: "RECEITA" })` = `"/transacoes?mes=2026-10&tipo=RECEITA"`
+  - `category of expenses` → `({ categoryId: "c1", tipo: "GASTO" })` = `"/transacoes?mes=2026-10&categoria=c1&tipo=GASTO"`
+  - `uncategorized` → `({ categoryId: "none", tipo: "GASTO" })` = `"/transacoes?mes=2026-10&categoria=none&tipo=GASTO"`
+  - `card origin` → `({ origem: "CARTAO" })` = `"/transacoes?mes=2026-10&origem=CARTAO"`
+  - `all filters keep the order mes, categoria, tipo, origem` → `({ origem: "CONTA", tipo: "GASTO", categoryId: "c1" })` = `"/transacoes?mes=2026-10&categoria=c1&tipo=GASTO&origem=CONTA"`
+
+- [ ] **Step 2: Run** `npx vitest run tests/domain/transactions-link.test.ts` → FAIL (módulo não existe).
+
+- [ ] **Step 3: Implement** `transactionsHref` com `URLSearchParams`, na ordem do Produces.
+
+- [ ] **Step 4: Run** `npx vitest run tests/domain/transactions-link.test.ts` → PASS.
+
+- [ ] **Step 5: Card da fatura usa a função:** `href: transactionsHref(mes, { origem: "CARTAO" })` em `src/domain/invoice-card.ts`. `npx vitest run tests/domain/invoice-card.test.ts` continua verde (mesmas URLs).
+
+- [ ] **Step 6: Dashboard** (`src/app/(app)/page.tsx`):
+  - Entradas (card e `HeroFigure`): `transactionsHref(month, { tipo: "RECEITA" })` quando há recebimentos; senão `null`.
+  - Gastos (card e `HeroFigure`): `transactionsHref(month, { tipo: "GASTO" })` quando há algum lançamento `GASTO`; senão `null`. O link "Ver transações" usa a mesma URL, sempre.
+  - Onde mais gastou: `transactionsHref(month, { categoryId: top.categoryId ?? "none", tipo: "GASTO" })` quando há `top`; senão `null`.
+  - Linhas de categoria: `transactionsHref(month, { categoryId: c.categoryId ?? "none", tipo: "GASTO" })`.
+  - `HeroFigure` ganha `href?: string | null`: com link, vira `Link` com `hover:ring-white/50` e `focus-visible:ring-2 focus-visible:ring-white`; sem link, continua `div`.
+
+- [ ] **Step 7: Verify.** `npx tsc --noEmit` (sem erros fora de `.next/`), `npx eslint src tests` e `npx vitest run` → limpos.
+
+- [ ] **Step 8: Conferência manual (usuário, com o servidor dele), out/2026:**
+  - Card Entradas → Transações com tipo Receita; total `R$ 7.699,40`, 15 lançamentos.
+  - Card Gastos → tipo Gasto, origem todas; total `-R$ 8.339,89`.
+  - Onde mais gastou (Setup) → categoria Setup + tipo Gasto; total `-R$ 4.333,59`.
+  - Quadrinhos Entradas e Gastos do banner → mesmas listas dos cards.
+  - Tab até cada card/quadrinho → foco visível; Enter abre a lista.
