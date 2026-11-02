@@ -6,6 +6,7 @@ import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components
 import { db } from "@/db/client";
 import { getMonthEntries } from "@/db/entries";
 import { getAvailableMonths, getCategories } from "@/db/queries";
+import { categoryFilterOptions } from "@/domain/category-options";
 import { entriesTotal, entryLabels, filterEntries, parseOrigin } from "@/domain/entries";
 import { formatBRL } from "@/domain/money";
 import { currentMonth, parseMonth } from "@/domain/month";
@@ -52,7 +53,10 @@ export default async function TransacoesPage({ searchParams }: Props) {
           name="categoria"
           value={categoryId}
           allLabel="Todas as categorias"
-          options={[{ value: "none", label: "Sem categoria" }, ...categories.map((c) => ({ value: c.id, label: c.nome }))]}
+          options={[
+            { value: "none", label: "Sem categoria" },
+            ...categoryFilterOptions(categories, tipo, categoryId).map((c) => ({ value: c.id, label: c.nome })),
+          ]}
         />
         <SearchParamSelect
           name="tipo"

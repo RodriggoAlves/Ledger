@@ -27,7 +27,6 @@ export default async function FaturaPage({ params }: { params: Promise<{ faturaI
 
   const { invoice, status, itens } = data;
   const total = itens.reduce((s, i) => s + i.valor, 0);
-  const options = categories.filter((c) => c.tipo === "GASTO").map((c) => ({ id: c.id, nome: c.nome }));
 
   return (
     <div className="space-y-6">
@@ -73,7 +72,7 @@ export default async function FaturaPage({ params }: { params: Promise<{ faturaI
                   purchaseId={item.purchaseId}
                   descricao={item.descricao}
                   categoryId={item.categoryId}
-                  categories={options}
+                  categories={categories}
                 />
                 <span className={`w-28 text-right tabular-nums ${item.valor < 0 ? "text-income" : ""}`}>
                   {formatBRL(item.valor)}

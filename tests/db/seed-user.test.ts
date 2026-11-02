@@ -18,7 +18,7 @@ describe.skipIf(!url)("ensureUserDefaults (integração)", { timeout: 30_000 }, 
       await ensureUserDefaults(db, userId);
       const cats = await db.select().from(categories).where(eq(categories.userId, userId));
       const rules = await db.select().from(categoryRules).where(eq(categoryRules.userId, userId));
-      expect(cats).toHaveLength(11);
+      expect(cats).toHaveLength(15);
       expect(rules).toHaveLength(10);
     } finally {
       await db.delete(categories).where(eq(categories.userId, userId));

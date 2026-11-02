@@ -43,6 +43,13 @@
       "when": 1793581666245,
       "tag": "0005_fatura_importacao",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793653265497,
+      "tag": "0006_categorias_receita",
+      "breakpoints": true
     }
   ]
 }

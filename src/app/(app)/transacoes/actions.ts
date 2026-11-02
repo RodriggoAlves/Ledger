@@ -4,7 +4,7 @@ import { and, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db/client";
 import { categories, categoryRules, transactions } from "@/db/schema";
-import { matchCategory } from "@/domain/categorization";
+import { newRuleTargets } from "@/domain/categorization";
 import { sanitizeTxUpdate } from "@/domain/guards";
 import type { TxType } from "@/domain/picpay-parser";
 import { requireUserId } from "@/lib/auth";
@@ -31,7 +31,7 @@ export async function updateTransaction(
   revalidatePath("/", "layout");
 }
 
-/** Cria regra "descrição → categoria" e aplica nas transações sem categoria que casam. */
+/** Cria regra "descrição → categoria" e aplica nas transações sem categoria do mesmo tipo que casam. */
 export async function createRuleFromTransaction(
   id: string,
   categoryId: string,
@@ -39,7 +39,7 @@ export async function createRuleFromTransaction(
   const userId = await requireUserId();
   await assertOwnCategory(userId, categoryId);
   const [tx] = await db
-    .select({ descricao: transactions.descricao })
+    .select({ descricao: transactions.descricao, tipo: transactions.tipo })
     .from(transactions)
     .where(and(eq(transactions.id, id), eq(transactions.userId, userId)));
   if (!tx) throw new Error("Transação não encontrada");
@@ -48,10 +48,10 @@ export async function createRuleFromTransaction(
   await db.insert(categoryRules).values({ userId, ...rule });
 
   const uncategorized = await db
-    .select({ id: transactions.id, descricao: transactions.descricao })
+    .select({ id: transactions.id, descricao: transactions.descricao, tipo: transactions.tipo })
     .from(transactions)
     .where(and(eq(transactions.userId, userId), isNull(transactions.categoryId)));
-  const ids = uncategorized.filter((t) => matchCategory(t.descricao, [rule])).map((t) => t.id);
+  const ids = newRuleTargets(uncategorized, rule, tx.tipo);
   if (ids.length) {
     await db
       .update(transactions)

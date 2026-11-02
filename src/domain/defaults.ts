@@ -11,7 +11,11 @@ export const DEFAULT_CATEGORIES: { nome: string; cor: string; tipo: TxType }[] =
   { nome: "Moradia", cor: "#008300", tipo: "GASTO" },
   { nome: "Compras", cor: "#e34948", tipo: "GASTO" },
   { nome: "Outros", cor: "#8a8a85", tipo: "GASTO" },
-  { nome: "Receitas", cor: "#22c55e", tipo: "RECEITA" },
+  { nome: "Salário", cor: "#16a34a", tipo: "RECEITA" },
+  { nome: "Freelance / Serviços", cor: "#0d9488", tipo: "RECEITA" },
+  { nome: "Reembolsos", cor: "#65a30d", tipo: "RECEITA" },
+  { nome: "Transferência própria", cor: "#059669", tipo: "RECEITA" },
+  { nome: "Outras receitas", cor: "#4d7c0f", tipo: "RECEITA" },
   { nome: "Movimentação", cor: "#94a3b8", tipo: "MOVIMENTACAO" },
 ];
 

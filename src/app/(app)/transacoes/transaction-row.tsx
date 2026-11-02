@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { useRuleOffer } from "@/components/rule-offer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TableCell, TableRow } from "@/components/ui/table";
+import { categoriesForType } from "@/domain/category-options";
 import { formatBRL } from "@/domain/money";
 import type { TxType } from "@/domain/picpay-parser";
 import { TIPO_LABEL } from "@/domain/tx-type";
@@ -41,7 +42,7 @@ export type RowData =
       labels: string[];
     };
 
-type Categories = { id: string; nome: string }[];
+type Categories = { id: string; nome: string; tipo: TxType }[];
 
 export function TransactionRow({ row, categories }: { row: RowData; categories: Categories }) {
   return row.origem === "CARTAO" ? (
@@ -92,7 +93,10 @@ function AccountEntryRow({ row, categories }: { row: Extract<RowData, { origem: 
   const [pending, startTransition] = useTransition();
   const offerRule = useRuleOffer();
 
-  const categoryItems = [{ value: NONE, label: "Sem categoria" }, ...categories.map((c) => ({ value: c.id, label: c.nome }))];
+  const categoryItems = [
+    { value: NONE, label: "Sem categoria" },
+    ...categoriesForType(categories, row.tipo, row.categoryId).map((c) => ({ value: c.id, label: c.nome })),
+  ];
   const tipoItems = Object.entries(TIPO_LABEL).map(([value, label]) => ({ value, label }));
 
   function onCategory(value: string | null) {

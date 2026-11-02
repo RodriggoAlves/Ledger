@@ -23,7 +23,7 @@ const parsed: ParseResult = {
   invalid: [{ line: 9, raw: "x", reason: "Valor inválido" }],
 };
 const rules = [{ padrao: "UBER", categoryId: "transp" }];
-const fallback = { RECEITA: "receitas", MOVIMENTACAO: "mov" };
+const fallback = { MOVIMENTACAO: "mov" };
 
 describe("buildImportPlan", () => {
   const plan = buildImportPlan(parsed, new Set(["h5"]), rules, fallback);
@@ -38,9 +38,9 @@ describe("buildImportPlan", () => {
   test("categorizes rows", () => {
     expect(cat("UBER TRIP")).toBe("transp");
     expect(cat("PADARIA")).toBeNull();
-    expect(cat("FULANO")).toBe("receitas");
+    expect(cat("FULANO")).toBeNull();
     expect(cat("Cofrinho")).toBe("mov");
-    expect(plan.semCategoria).toBe(1);
+    expect(plan.semCategoria).toBe(2);
   });
 
   test("passes invalid rows through", () => {

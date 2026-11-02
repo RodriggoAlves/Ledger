@@ -24,14 +24,13 @@ export async function getRulesWithIds(userId: string) {
     .orderBy(categoryRules.padrao);
 }
 
-/** Categorias usadas quando RECEITA/MOVIMENTACAO não casam com nenhuma regra. */
-export async function getFallbackCategories(userId: string) {
-  const rows = await db
-    .select({ id: categories.id, nome: categories.nome })
+/** Categoria usada quando uma MOVIMENTACAO não casa com nenhuma regra. */
+export async function getFallbackCategories(userId: string): Promise<{ MOVIMENTACAO: string | null }> {
+  const [row] = await db
+    .select({ id: categories.id })
     .from(categories)
-    .where(and(eq(categories.userId, userId), inArray(categories.nome, ["Receitas", "Movimentação"])));
-  const byName = new Map(rows.map((r) => [r.nome, r.id]));
-  return { RECEITA: byName.get("Receitas") ?? null, MOVIMENTACAO: byName.get("Movimentação") ?? null };
+    .where(and(eq(categories.userId, userId), eq(categories.nome, "Movimentação")));
+  return { MOVIMENTACAO: row?.id ?? null };
 }
 
 export async function getExistingHashes(userId: string, hashes: string[]): Promise<Set<string>> {

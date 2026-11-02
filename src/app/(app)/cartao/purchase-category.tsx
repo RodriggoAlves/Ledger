@@ -4,6 +4,8 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 import { useRuleOffer } from "@/components/rule-offer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { categoriesForType } from "@/domain/category-options";
+import type { TxType } from "@/domain/picpay-parser";
 import { createRuleFromPurchaseAction, setPurchaseCategoryAction } from "./actions";
 
 const NONE = "__none__";
@@ -21,11 +23,15 @@ export function PurchaseCategory({
   purchaseId: string;
   descricao: string;
   categoryId: string | null;
-  categories: { id: string; nome: string }[];
+  categories: { id: string; nome: string; tipo: TxType }[];
 }) {
   const [pending, startTransition] = useTransition();
   const offerRule = useRuleOffer();
-  const items = [{ value: NONE, label: "Sem categoria" }, ...categories.map((c) => ({ value: c.id, label: c.nome }))];
+  // Compra do cartão é sempre gasto.
+  const items = [
+    { value: NONE, label: "Sem categoria" },
+    ...categoriesForType(categories, "GASTO", categoryId).map((c) => ({ value: c.id, label: c.nome })),
+  ];
 
   function onChange(value: string | null) {
     const next = !value || value === NONE ? null : value;

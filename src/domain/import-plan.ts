@@ -14,7 +14,7 @@ export function buildImportPlan(
   parsed: ParseResult,
   existingHashes: Set<string>,
   rules: Rule[],
-  categoriaPorTipo: { RECEITA: string | null; MOVIMENTACAO: string | null },
+  categoriaPorTipo: { MOVIMENTACAO: string | null },
 ): ImportPlan {
   const novas: PlannedRow[] = [];
   let duplicadas = 0;
@@ -24,9 +24,10 @@ export function buildImportPlan(
       duplicadas++;
       continue;
     }
+    // Sem regra, só movimentação tem categoria automática; gasto e receita ficam para o usuário.
     const categoryId =
       matchCategory(row.descricao, rules) ??
-      (row.tipo === "GASTO" ? null : categoriaPorTipo[row.tipo]);
+      (row.tipo === "MOVIMENTACAO" ? categoriaPorTipo.MOVIMENTACAO : null);
     novas.push({ ...row, categoryId });
   }
 
