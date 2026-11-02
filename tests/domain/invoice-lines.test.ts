@@ -66,3 +66,11 @@ test("pairedIndexes matches each refund to one purchase only", () => {
   ];
   expect([...pairedIndexes(items)].sort()).toEqual([0, 2]);
 });
+
+test("a truncated payment description is a payment", () => {
+  const parsed: ParsedInvoice = {
+    ...fixture,
+    linhas: [{ dia: 1, mes: 9, descricao: "PAGAMENTO DE FATURA PELO PICPA", valor: -38904, parcela: null, cartaoFinal: null }],
+  };
+  expect(resolveLines(parsed)[0].kind).toBe("PAGAMENTO");
+});

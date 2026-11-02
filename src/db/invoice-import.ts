@@ -155,6 +155,12 @@ export async function applyInvoiceImport(
         .set({ invoiceId: await idFor(m.mes) })
         .where(mine(installments.id, [m.installmentId]));
     }
+    if (plan.reativar.length) {
+      await tx
+        .update(installments)
+        .set({ canceladaPorImportId: null })
+        .where(mine(installments.id, plan.reativar.map((r) => r.installmentId)));
+    }
     for (const a of plan.ajustarValor) {
       await tx.update(installments).set({ valor: a.valor }).where(mine(installments.id, [a.installmentId]));
     }

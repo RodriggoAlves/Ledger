@@ -43,7 +43,7 @@ export function pairedIndexes(items: { descricao: string; valor: number }[]): Se
 }
 
 const kindOf = (l: RawInvoiceLine): LineKind =>
-  normalize(l.descricao) === "PAGAMENTO DE FATURA" ? "PAGAMENTO" : l.valor < 0 ? "ESTORNO" : "COMPRA";
+  normalize(l.descricao).startsWith("PAGAMENTO DE FATURA") ? "PAGAMENTO" : l.valor < 0 ? "ESTORNO" : "COMPRA";
 
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 

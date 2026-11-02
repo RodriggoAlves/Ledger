@@ -183,3 +183,53 @@ describe("installment value differs by the rounding remainder", () => {
     expect(p.ajustarValor).toContainEqual({ installmentId: "MERCADOLIVRE*M#10", valor: 14643 });
   });
 });
+
+describe("late and anticipated installments", () => {
+  const purchase = (installments: { n: number; mes: string; confirmada?: boolean; cancelada?: boolean }[]): CardState => ({
+    importedMonths: ["2026-09"],
+    purchases: [
+      {
+        id: "p1",
+        chave: "AMAZON BR|2026-02-21|10|23088|0",
+        descricao: "AMAZON BR",
+        parcelas: 10,
+        installments: installments.map((i) => ({
+          id: `i${i.n}`,
+          numero: i.n,
+          mes: i.mes,
+          valor: 23088,
+          confirmada: i.confirmada ?? false,
+          cancelada: i.cancelada ?? false,
+        })),
+      },
+    ],
+  });
+
+  test("a late installment reactivates a purchase cancelled the month before", () => {
+    const state = purchase([
+      { n: 8, mes: "2026-08", confirmada: true },
+      { n: 9, mes: "2026-09", cancelada: true },
+      { n: 10, mes: "2026-10", cancelada: true },
+    ]);
+    const p = plan(october("21/02 AMAZON BR PARC09/10 230,88"), state);
+    expect(p.novas).toHaveLength(0);
+    expect(p.confirmar).toEqual([{ installmentId: "i9" }]);
+    expect(p.reativar).toEqual([{ installmentId: "i9" }, { installmentId: "i10" }]);
+    expect(p.mover).toEqual([
+      { installmentId: "i9", mes: "2026-10" },
+      { installmentId: "i10", mes: "2026-11" },
+    ]);
+  });
+
+  test("several installments of the same purchase in one invoice are all confirmed in it", () => {
+    const state = purchase([
+      { n: 8, mes: "2026-09", confirmada: true },
+      { n: 9, mes: "2026-10" },
+      { n: 10, mes: "2026-11" },
+    ]);
+    const p = plan(october("21/02 AMAZON BR PARC09/10 230,88", "21/02 AMAZON BR PARC10/10 230,88"), state);
+    expect(p.novas).toHaveLength(0);
+    expect(p.confirmar).toEqual([{ installmentId: "i9" }, { installmentId: "i10" }]);
+    expect(p.mover.at(-1)).toEqual({ installmentId: "i10", mes: "2026-10" });
+  });
+});

@@ -81,3 +81,71 @@ test("reads the credit operations section (IOF) before the national transactions
     ["PAGAMENTO DE FATURA", -725, null],
   ]);
 });
+
+describe("older invoice layouts (jan–ago/2026)", () => {
+  const old = (...body: string[]) => [
+    "Vencimento: 05-03-2026 | Fechamento: 26-02-2026",
+    "Picpay Card",
+    "Transações Nacionais",
+    "Data Estabelecimento Valor (R$)",
+    ...body,
+  ];
+
+  test("accepts header dates with dashes", () => {
+    const parsed = parsePicPayInvoice(old("01/02 LOJA 10,00", "Total geral dos lançamentos 10,00"));
+    expect(parsed.fechamento).toEqual(new Date(Date.UTC(2026, 1, 26)));
+    expect(parsed.vencimento).toEqual(new Date(Date.UTC(2026, 2, 5)));
+  });
+
+  test("a payment printed without minus sign is negative and out of the total", () => {
+    const parsed = parsePicPayInvoice(
+      old("02/02 PAGAMENTO DE FATURA 403,03", "15/02 IOF COMPRA INTERNACIONAL 1,92", "Total geral dos lançamentos 1,92"),
+    );
+    expect(parsed.linhas.find((l) => l.descricao === "PAGAMENTO DE FATURA")!.valor).toBe(-40303);
+  });
+
+  test("international purchase takes its description from the line above", () => {
+    const parsed = parsePicPayInvoice(
+      old(
+        "Transações Internacionais",
+        "Data Estabelecimento US$ R$",
+        "DUOBOT.COM",
+        "15/02 Dólar: 10,00 10,00 54,90",
+        "Câmbio do dia: R$ 5,49",
+        "Total geral dos lançamentos 54,90",
+      ),
+    );
+    expect(parsed.linhas).toEqual([
+      { dia: 15, mes: 2, descricao: "DUOBOT.COM", valor: 5490, parcela: null, cartaoFinal: null },
+    ]);
+  });
+
+  test("old total already nets refunds printed with a minus sign", () => {
+    const parsed = parsePicPayInvoice(
+      old("02/07 DECOLAR 10,79", "09/07 CARS ON BOOKING -6,00", "Total geral dos lançamentos 4,79"),
+    );
+    expect(parsed.linhas.map((l) => l.valor)).toEqual([1079, -600]);
+  });
+
+  test("refunds printed without sign become one unidentified credit from the summary", () => {
+    const parsed = parsePicPayInvoice([
+      "Créditos e estornos -10,98",
+      ...old("25/04 99FOOD *ACAITE 10,98", "25/04 99FOOD *ACAITE 10,98", "26/04 LOJA 5,00", "Total geral dos lançamentos 15,98"),
+    ]);
+    expect(parsed.linhas.at(-1)).toEqual({
+      dia: 26,
+      mes: 2,
+      descricao: "CRÉDITOS E ESTORNOS NÃO IDENTIFICADOS",
+      valor: -1098,
+      parcela: null,
+      cartaoFinal: null,
+    });
+  });
+
+  test("a truncated payment description is still a payment", () => {
+    const parsed = parsePicPayInvoice(
+      old("01/12 PAGAMENTO DE FATURA PELO PICPA 389,04", "02/12 LOJA 1,00", "Total geral dos lançamentos 1,00"),
+    );
+    expect(parsed.linhas[0].valor).toBe(-38904);
+  });
+});
