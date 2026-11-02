@@ -6,19 +6,11 @@ const cats = [
   { id: "alim", nome: "Alimentação", cor: "#f00" },
   { id: "transp", nome: "Transporte", cor: "#00f" },
 ];
-const tx = (valor: number, categoryId: string | null, tipo: TxType = "GASTO", convertidaCredito = false) => ({
-  valor,
-  categoryId,
-  tipo,
-  convertidaCredito,
-});
+const tx = (valor: number, categoryId: string | null, tipo: TxType = "GASTO") => ({ valor, categoryId, tipo });
 
 describe("summarizeByCategory", () => {
-  test("sums only GASTO not converted to credit", () => {
-    const r = summarizeByCategory(
-      [tx(-1000, "alim"), tx(5000, "alim", "RECEITA"), tx(-9000, "alim", "MOVIMENTACAO"), tx(-700, "alim", "GASTO", true)],
-      cats,
-    );
+  test("sums only GASTO", () => {
+    const r = summarizeByCategory([tx(-1000, "alim"), tx(5000, "alim", "RECEITA"), tx(-9000, "alim", "MOVIMENTACAO")], cats);
     expect(r).toEqual([{ categoryId: "alim", nome: "Alimentação", cor: "#f00", total: 1000, percentual: 100 }]);
   });
 
@@ -49,9 +41,9 @@ describe("summarizeByCategory", () => {
   });
 });
 
-test("counts credit installments and skips the converted transaction", () => {
-  const txs = [tx(-9000, "alim", "GASTO", true), ...installmentsAsTxs([{ valor: 3000, categoryId: "alim" }])];
+test("counts card installments and lets a refund reduce its category", () => {
+  const txs = [tx(-1000, "alim"), ...installmentsAsTxs([{ valor: 3000, categoryId: "alim" }, { valor: -500, categoryId: "alim" }])];
   expect(summarizeByCategory(txs, cats)).toEqual([
-    { categoryId: "alim", nome: "Alimentação", cor: "#f00", total: 3000, percentual: 100 },
+    { categoryId: "alim", nome: "Alimentação", cor: "#f00", total: 3500, percentual: 100 },
   ]);
 });

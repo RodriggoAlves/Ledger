@@ -71,6 +71,7 @@
   --ring: #2fa36d;
   --income: #16774c;
   --expense: #c03a4b;
+  --transfer: #64748b;
   --brand-from: #34b27a;
   --brand-to: #1c7a52;
   --chart-1: #1f8a5b;
@@ -111,6 +112,7 @@
   --ring: #4aa877;
   --income: #5cbf8b;
   --expense: #e0707d;
+  --transfer: #94a3b8;
   --brand-from: #3f9d6c;
   --brand-to: #256b4b;
   --sidebar: #232629;
@@ -151,6 +153,9 @@
   }
   .text-expense {
     color: var(--expense);
+  }
+  .text-transfer {
+    color: var(--transfer);
   }
   .bg-brand {
     background-image: linear-gradient(120deg, var(--brand-from), var(--brand-to));

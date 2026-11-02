@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { db } from "@/db/client";
-import { CreditError } from "@/db/credit";
 import { deleteImport } from "@/db/imports";
 import { getExistingHashes, getFallbackCategories, getRules } from "@/db/queries";
 import { imports, transactions } from "@/db/schema";
@@ -79,7 +78,6 @@ export async function deleteImportAction(importId: string): Promise<{ apagadas?:
     revalidatePath("/", "layout");
     return res;
   } catch (e) {
-    if (e instanceof CreditError) return { error: e.message };
     console.error(e);
     return { error: "Não foi possível excluir a importação" };
   }

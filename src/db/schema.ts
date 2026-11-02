@@ -12,6 +12,7 @@ import {
 
 export const txType = pgEnum("tx_type", ["GASTO", "RECEITA", "MOVIMENTACAO"]);
 export const txOrigin = pgEnum("tx_origin", ["CSV", "MANUAL"]);
+export const purchaseType = pgEnum("purchase_type", ["COMPRA", "ESTORNO"]);
 
 export const categories = pgTable(
   "categories",
@@ -57,19 +58,24 @@ export const transactions = pgTable(
     tipo: txType("tipo").notNull(),
     categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
     origem: txOrigin("origem").notNull(),
-    convertidaCredito: boolean("convertida_credito").notNull().default(false),
     hashUnico: text("hash_unico").notNull(),
   },
   (t) => [unique().on(t.userId, t.hashUnico), index().on(t.userId, t.dataHora)],
 );
 
-export const creditCards = pgTable("credit_cards", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id").notNull().unique(),
-  nome: text("nome").notNull(),
-  diaFechamento: integer("dia_fechamento").notNull(),
-  diaVencimento: integer("dia_vencimento").notNull(),
-});
+export const creditCards = pgTable(
+  "credit_cards",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    /** Banco do importador de fatura (por enquanto só "PICPAY"). */
+    banco: text("banco").notNull().default("PICPAY"),
+    nome: text("nome").notNull(),
+    diaFechamento: integer("dia_fechamento").notNull(),
+    diaVencimento: integer("dia_vencimento").notNull(),
+  },
+  (t) => [unique().on(t.userId, t.banco)],
+);
 
 export const invoices = pgTable(
   "invoices",
@@ -85,9 +91,28 @@ export const invoices = pgTable(
     vencimento: timestamp("vencimento").notNull(),
     paga: boolean("paga").notNull().default(false),
     pagaEm: timestamp("paga_em", { withTimezone: true }),
+    /** Importação que trouxe esta fatura; null = projetada. Sem FK para evitar ciclo com invoice_imports. */
+    importId: uuid("import_id"),
+    /** Importação cuja linha de pagamento marcou esta fatura como paga. */
+    pagaPorImportId: uuid("paga_por_import_id"),
   },
   (t) => [unique().on(t.cardId, t.mes)],
 );
+
+export const invoiceImports = pgTable("invoice_imports", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").notNull(),
+  cardId: uuid("card_id")
+    .notNull()
+    .references(() => creditCards.id, { onDelete: "cascade" }),
+  invoiceId: uuid("invoice_id")
+    .notNull()
+    .references(() => invoices.id, { onDelete: "cascade" }),
+  nomeArquivo: text("nome_arquivo").notNull(),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+  totalLancamentos: integer("total_lancamentos").notNull(),
+  linhas: integer("linhas").notNull(),
+});
 
 export const creditPurchases = pgTable(
   "credit_purchases",
@@ -97,16 +122,23 @@ export const creditPurchases = pgTable(
     cardId: uuid("card_id")
       .notNull()
       .references(() => creditCards.id, { onDelete: "cascade" }),
+    importId: uuid("import_id")
+      .notNull()
+      .references(() => invoiceImports.id, { onDelete: "cascade" }),
+    tipo: purchaseType("tipo").notNull(),
+    /** Identifica a mesma compra entre faturas (ver domain/invoice-lines.ts). */
+    chave: text("chave").notNull(),
     descricao: text("descricao").notNull(),
     categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
+    /** Valor da parcela × parcelas; negativo no estorno. */
     valorTotal: integer("valor_total").notNull(),
     parcelas: integer("parcelas").notNull(),
+    /** Primeira parcela vista pelo app; as anteriores não existem como linhas. */
+    parcelaInicial: integer("parcela_inicial").notNull(),
     dataCompra: timestamp("data_compra").notNull(),
-    transactionId: uuid("transaction_id")
-      .unique()
-      .references(() => transactions.id, { onDelete: "set null" }),
+    cartaoFinal: text("cartao_final"),
   },
-  (t) => [index().on(t.userId)],
+  (t) => [index().on(t.userId), unique().on(t.cardId, t.chave)],
 );
 
 export const installments = pgTable(
@@ -122,7 +154,8 @@ export const installments = pgTable(
       .references(() => invoices.id, { onDelete: "restrict" }),
     numero: integer("numero").notNull(),
     valor: integer("valor").notNull(),
-    paga: boolean("paga").notNull().default(false),
+    confirmadaPorImportId: uuid("confirmada_por_import_id"),
+    canceladaPorImportId: uuid("cancelada_por_import_id"),
   },
   (t) => [index().on(t.userId), index().on(t.invoiceId)],
 );
@@ -131,5 +164,6 @@ export type Category = typeof categories.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type CreditCard = typeof creditCards.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;
+export type InvoiceImport = typeof invoiceImports.$inferSelect;
 export type CreditPurchase = typeof creditPurchases.$inferSelect;
 export type Installment = typeof installments.$inferSelect;

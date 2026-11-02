@@ -35,8 +35,11 @@ const TIPOS: Record<string, TxType> = {
   "compra realizada": "GASTO",
 };
 
-function classify(tipoOriginal: string, valor: number): TxType {
-  return TIPOS[tipoOriginal.trim().toLowerCase()] ?? (valor < 0 ? "GASTO" : "RECEITA");
+function classify(tipoOriginal: string, descricao: string, valor: number): TxType {
+  const tipo = tipoOriginal.trim().toLowerCase();
+  // Pagar a fatura só move dinheiro da conta para o cartão; o gasto são as compras da fatura.
+  if (tipo === "pagamento realizado" && descricao.trim().toLowerCase().startsWith("fatura")) return "MOVIMENTACAO";
+  return TIPOS[tipo] ?? (valor < 0 ? "GASTO" : "RECEITA");
 }
 
 export function parsePicPayCsv(content: string): ParseResult {
@@ -78,7 +81,7 @@ export function parsePicPayCsv(content: string): ParseResult {
       descricao,
       valor,
       formaPagamento: forma || null,
-      tipo: classify(tipoOriginal, valor),
+      tipo: classify(tipoOriginal, descricao, valor),
       hash: createHash("sha256").update(`${key}|${n}`).digest("hex"),
     });
   });

@@ -9,21 +9,21 @@ export type CategoryTotal = {
   percentual: number;
 };
 
-type SummaryTx = { valor: number; tipo: TxType; convertidaCredito: boolean; categoryId: string | null };
+type SummaryTx = { valor: number; tipo: TxType; categoryId: string | null };
 type SummaryCategory = { id: string; nome: string; cor: string };
 
-/** Parcelas de cartão (valor positivo) no formato de transação de gasto, para somar nos totais. */
+/** Parcelas de cartão (positivo; estorno negativo) no formato de transação de gasto, para somar nos totais. */
 export function installmentsAsTxs(parcelas: { valor: number; categoryId: string | null }[]): SummaryTx[] {
-  return parcelas.map((p) => ({ valor: -p.valor, tipo: "GASTO", convertidaCredito: false, categoryId: p.categoryId }));
+  return parcelas.map((p) => ({ valor: -p.valor, tipo: "GASTO", categoryId: p.categoryId }));
 }
 
 const UNCATEGORIZED = { nome: "Sem categoria", cor: "#a1a1aa" };
 
-/** Gastos do conjunto por categoria; ignora receitas, movimentações e compras convertidas em crédito. */
+/** Gastos do conjunto por categoria; ignora receitas e movimentações. */
 export function summarizeByCategory(txs: SummaryTx[], categories: SummaryCategory[]): CategoryTotal[] {
   const totals = new Map<string | null, number>();
   for (const t of txs) {
-    if (t.tipo !== "GASTO" || t.convertidaCredito) continue;
+    if (t.tipo !== "GASTO") continue;
     totals.set(t.categoryId, (totals.get(t.categoryId) ?? 0) - t.valor);
   }
 

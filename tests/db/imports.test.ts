@@ -3,9 +3,8 @@ import { config } from "dotenv";
 import { eq, inArray } from "drizzle-orm";
 import { afterAll, describe, expect, test } from "vitest";
 import { createDb, type Db } from "@/db/client";
-import { convertTransaction, CreditError, markInvoicePaid, saveCard } from "@/db/credit";
 import { deleteImport, listImports } from "@/db/imports";
-import { categories, categoryRules, creditCards, creditPurchases, imports, installments, invoices, transactions } from "@/db/schema";
+import { categories, categoryRules, imports, transactions } from "@/db/schema";
 
 config({ path: ".env.local" });
 const url = process.env.TEST_DATABASE_URL;
@@ -39,10 +38,6 @@ async function seedImport(db: Db, userId: string, nome: string, rows: SeedRow[],
 }
 
 async function cleanup(db: Db, userIds: string[]) {
-  await db.delete(installments).where(inArray(installments.userId, userIds));
-  await db.delete(creditPurchases).where(inArray(creditPurchases.userId, userIds));
-  await db.delete(invoices).where(inArray(invoices.userId, userIds));
-  await db.delete(creditCards).where(inArray(creditCards.userId, userIds));
   await db.delete(transactions).where(inArray(transactions.userId, userIds));
   await db.delete(imports).where(inArray(imports.userId, userIds));
   await db.delete(categories).where(inArray(categories.userId, userIds));
@@ -152,47 +147,6 @@ describe.skipIf(!url)("importações (integração)", { timeout: 30_000 }, () =>
         .onConflictDoNothing({ target: [transactions.userId, transactions.hashUnico] })
         .returning({ id: transactions.id });
       expect(rows).toHaveLength(1);
-    } finally {
-      await cleanup(db, [userId]);
-    }
-  });
-});
-
-describe.skipIf(!url)("importações com crédito (integração)", { timeout: 30_000 }, () => {
-  async function seedConverted(userId: string) {
-    await saveCard(db, userId, { nome: "Cartão", diaFechamento: 10, diaVencimento: 17 });
-    const importId = await seedImport(db, userId, "a.csv", [{ dataHora: new Date("2026-09-20T10:00:00Z"), hash: "c1" }]);
-    const [tx] = await db.select({ id: transactions.id }).from(transactions).where(eq(transactions.importId, importId));
-    await convertTransaction(db, userId, tx.id, { parcelas: 2, jaPagas: 0 });
-    return importId;
-  }
-
-  test("deletes conversions of the import's transactions", async () => {
-    const userId = randomUUID();
-    try {
-      const importId = await seedConverted(userId);
-      expect(await deleteImport(db, userId, importId)).toEqual({ apagadas: 1 });
-      expect(await db.select().from(creditPurchases).where(eq(creditPurchases.userId, userId))).toHaveLength(0);
-      expect(await db.select().from(installments).where(eq(installments.userId, userId))).toHaveLength(0);
-    } finally {
-      await cleanup(db, [userId]);
-    }
-  });
-
-  test("blocks when an installment is in a paid invoice", async () => {
-    const userId = randomUUID();
-    try {
-      const importId = await seedConverted(userId);
-      const [inv] = await db.select().from(invoices).where(eq(invoices.userId, userId)).limit(1);
-      await markInvoicePaid(db, userId, inv.id);
-
-      const attempt = deleteImport(db, userId, importId);
-      await expect(attempt).rejects.toBeInstanceOf(CreditError);
-      await expect(deleteImport(db, userId, importId)).rejects.toThrow(
-        "Esta importação tem compras em faturas pagas. Desfaça a conversão delas antes de excluir.",
-      );
-      expect(await db.select().from(transactions).where(eq(transactions.userId, userId))).toHaveLength(1);
-      expect(await db.select().from(creditPurchases).where(eq(creditPurchases.userId, userId))).toHaveLength(1);
     } finally {
       await cleanup(db, [userId]);
     }

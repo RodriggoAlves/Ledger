@@ -3,10 +3,9 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db/client";
-import { convertTransaction, CreditError, undoConversion } from "@/db/credit";
 import { categories, categoryRules, transactions } from "@/db/schema";
 import { matchCategory } from "@/domain/categorization";
-import { isUuid, sanitizeTxUpdate } from "@/domain/guards";
+import { sanitizeTxUpdate } from "@/domain/guards";
 import type { TxType } from "@/domain/picpay-parser";
 import { requireUserId } from "@/lib/auth";
 
@@ -61,34 +60,4 @@ export async function createRuleFromTransaction(
   }
   revalidatePath("/", "layout");
   return { aplicadas: ids.length };
-}
-
-export async function convertTransactionAction(
-  id: string,
-  input: { parcelas: number; jaPagas: number },
-): Promise<{ error?: string }> {
-  const userId = await requireUserId();
-  if (typeof id !== "string" || !isUuid(id)) return { error: "Transação não encontrada" };
-  try {
-    await convertTransaction(db, userId, id, { parcelas: Number(input?.parcelas), jaPagas: Number(input?.jaPagas) });
-    revalidatePath("/", "layout");
-    return {};
-  } catch (e) {
-    if (e instanceof CreditError) return { error: e.message };
-    console.error(e);
-    return { error: "Não foi possível passar para o crédito" };
-  }
-}
-
-export async function undoConversionAction(id: string): Promise<{ error?: string }> {
-  const userId = await requireUserId();
-  if (typeof id !== "string" || !isUuid(id)) return { error: "Transação não encontrada" };
-  try {
-    await undoConversion(db, userId, id);
-    revalidatePath("/", "layout");
-    return {};
-  } catch (e) {
-    console.error(e);
-    return { error: "Não foi possível desfazer a conversão" };
-  }
 }

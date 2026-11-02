@@ -50,3 +50,15 @@ describe("parsePicPayCsv", () => {
     expect(again).toEqual(result.rows.map((r) => r.hash));
   });
 });
+
+const CSV_HEADER = 'data,hora,tipo,"origem / destino",valor,"forma de pagamento"';
+
+test("invoice payment is a transfer", () => {
+  const csv = `${CSV_HEADER}\n2026-10-05,11:16,"Pagamento realizado","Fatura PicPay Card","−R$ 7,25","Com saldo"\n`;
+  expect(parsePicPayCsv(csv).rows[0].tipo).toBe("MOVIMENTACAO");
+});
+
+test("other payments keep the sign rule", () => {
+  const csv = `${CSV_HEADER}\n2026-10-05,11:16,"Pagamento realizado","CONTA DE LUZ","−R$ 90,00","Com saldo"\n`;
+  expect(parsePicPayCsv(csv).rows[0].tipo).toBe("GASTO");
+});

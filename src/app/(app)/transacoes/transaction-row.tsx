@@ -16,7 +16,6 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { formatBRL } from "@/domain/money";
 import type { TxType } from "@/domain/picpay-parser";
 import { createRuleFromTransaction, updateTransaction } from "./actions";
-import { CreditCell } from "./convert-dialog";
 
 const NONE = "__none__";
 
@@ -26,6 +25,12 @@ export const TIPO_LABEL: Record<TxType, string> = {
   MOVIMENTACAO: "Movimentação",
 };
 
+const VALOR_COLOR: Record<TxType, string> = {
+  GASTO: "text-expense",
+  RECEITA: "text-income",
+  MOVIMENTACAO: "text-transfer",
+};
+
 export type RowData = {
   id: string;
   dataHora: string;
@@ -33,17 +38,15 @@ export type RowData = {
   valor: number;
   tipo: TxType;
   categoryId: string | null;
-  convertidaCredito: boolean;
+  formaPagamento: string | null;
 };
 
 export function TransactionRow({
   tx,
   categories,
-  hasCard,
 }: {
   tx: RowData;
   categories: { id: string; nome: string }[];
-  hasCard: boolean;
 }) {
   const [pending, startTransition] = useTransition();
   const [ask, setAsk] = useState<{ categoryId: string; nome: string } | null>(null);
@@ -83,7 +86,12 @@ export function TransactionRow({
           minute: "2-digit",
         })}
       </TableCell>
-      <TableCell className="min-w-40">{tx.descricao}</TableCell>
+      <TableCell className="min-w-40">
+        {tx.descricao}
+        {tx.formaPagamento === "Com cartão" && (
+          <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-muted-foreground">Débito</span>
+        )}
+      </TableCell>
       <TableCell>
         <Select items={tipoItems} value={tx.tipo} onValueChange={(v) => v && onTipo(v as TxType)} disabled={pending}>
           <SelectTrigger size="sm" className="w-36">
@@ -112,19 +120,7 @@ export function TransactionRow({
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell
-        className={`text-right whitespace-nowrap ${tx.valor < 0 ? "text-expense" : ""}`}
-      >
-        {formatBRL(tx.valor)}
-      </TableCell>
-      <TableCell>
-        <CreditCell
-          id={tx.id}
-          descricao={tx.descricao}
-          convertida={tx.convertidaCredito}
-          canConvert={hasCard && tx.tipo === "GASTO"}
-        />
-      </TableCell>
+      <TableCell className={`text-right whitespace-nowrap ${VALOR_COLOR[tx.tipo]}`}>{formatBRL(tx.valor)}</TableCell>
 
       <Dialog open={ask !== null} onOpenChange={(open) => !open && setAsk(null)}>
         <DialogContent>

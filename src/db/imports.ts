@@ -1,7 +1,6 @@
-import { and, count, desc, eq, inArray, max, min } from "drizzle-orm";
+import { and, count, desc, eq, max, min } from "drizzle-orm";
 import type { Db } from "./client";
-import { CreditError, deletePurchasesOf } from "./credit";
-import { creditPurchases, imports, installments, invoices, transactions } from "./schema";
+import { imports, transactions } from "./schema";
 
 export type ImportSummary = {
   id: string;
@@ -32,8 +31,8 @@ export async function listImports(db: Db, userId: string): Promise<ImportSummary
 }
 
 /**
- * Apaga a importação e todas as suas transações, desfazendo conversões em crédito.
- * null se não existe ou não é do usuário; CreditError se alguma parcela já está em fatura paga.
+ * Apaga a importação e todas as suas transações.
+ * null se não existe ou não é do usuário.
  */
 export async function deleteImport(db: Db, userId: string, importId: string): Promise<{ apagadas: number } | null> {
   return db.transaction(async (tx) => {
@@ -42,28 +41,6 @@ export async function deleteImport(db: Db, userId: string, importId: string): Pr
       .from(imports)
       .where(and(eq(imports.id, importId), eq(imports.userId, userId)));
     if (!imp) return null;
-
-    const ids = (
-      await tx
-        .select({ id: transactions.id })
-        .from(transactions)
-        .where(and(eq(transactions.importId, importId), eq(transactions.userId, userId)))
-    ).map((t) => t.id);
-
-    // Compras convertidas em crédito: bloqueia se já há parcela em fatura paga; senão desfaz a conversão.
-    if (ids.length) {
-      const [paid] = await tx
-        .select({ id: installments.id })
-        .from(installments)
-        .innerJoin(creditPurchases, eq(creditPurchases.id, installments.purchaseId))
-        .innerJoin(invoices, eq(invoices.id, installments.invoiceId))
-        .where(and(inArray(creditPurchases.transactionId, ids), eq(invoices.paga, true)))
-        .limit(1);
-      if (paid) {
-        throw new CreditError("Esta importação tem compras em faturas pagas. Desfaça a conversão delas antes de excluir.");
-      }
-      await deletePurchasesOf(tx, userId, ids);
-    }
 
     const apagadas = await tx
       .delete(transactions)

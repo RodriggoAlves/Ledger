@@ -1,209 +1,112 @@
-import { and, asc, eq, inArray, sql, sum } from "drizzle-orm";
-import { invoiceDates, planInstallments, type CardDays } from "@/domain/invoice";
+import { and, asc, eq, isNull, sql, sum } from "drizzle-orm";
+import { pairedIndexes } from "@/domain/invoice-lines";
 import type { MonthKey } from "@/domain/month";
-import type { PurchaseInput } from "@/domain/purchase-input";
 import type { Db } from "./client";
-import {
-  creditCards,
-  creditPurchases,
-  installments,
-  invoices,
-  transactions,
-  type CreditCard,
-  type Invoice,
-} from "./schema";
+import { creditCards, creditPurchases, installments, invoices, type CreditCard, type Invoice } from "./schema";
 
 type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
 
 /** Erro com mensagem exibível ao usuário. */
 export class CreditError extends Error {}
 
-const MAX_PARCELAS = 48;
+export const BANCO = "PICPAY";
 
 export async function getCard(db: Db | Tx, userId: string): Promise<CreditCard | null> {
-  const [card] = await db.select().from(creditCards).where(eq(creditCards.userId, userId));
+  const [card] = await db
+    .select()
+    .from(creditCards)
+    .where(and(eq(creditCards.userId, userId), eq(creditCards.banco, BANCO)));
   return card ?? null;
 }
 
-export async function saveCard(
+export type InvoiceStatus = "PAGA" | "FECHADA" | "PROJETADA";
+
+export const invoiceStatus = (i: Pick<Invoice, "paga" | "importId">): InvoiceStatus =>
+  i.paga ? "PAGA" : i.importId ? "FECHADA" : "PROJETADA";
+
+/** Parcelas canceladas (projeção que não veio) não contam em nada. */
+const active = isNull(installments.canceladaPorImportId);
+
+export async function listInvoices(
   db: Db,
   userId: string,
-  input: { nome: string; diaFechamento: number; diaVencimento: number },
-): Promise<CreditCard> {
-  const [card] = await db
-    .insert(creditCards)
-    .values({ userId, ...input })
-    .onConflictDoUpdate({ target: creditCards.userId, set: input })
-    .returning();
-  return card;
-}
-
-function validateCounts(parcelas: number, jaPagas: number) {
-  if (!Number.isInteger(parcelas) || parcelas < 1 || parcelas > MAX_PARCELAS) {
-    throw new CreditError("Número de parcelas inválido");
-  }
-  if (!Number.isInteger(jaPagas) || jaPagas < 0 || jaPagas > parcelas) {
-    throw new CreditError("Parcelas pagas maior que o total");
-  }
-}
-
-async function requireCard(tx: Tx, userId: string): Promise<CreditCard> {
-  const card = await getCard(tx, userId);
-  if (!card) throw new CreditError("Configure o cartão antes");
-  return card;
-}
-
-/** Garante a fatura do mês (cria sob demanda) e devolve o id. */
-async function invoiceId(tx: Tx, userId: string, card: CreditCard, mes: MonthKey): Promise<string> {
-  const days: CardDays = card;
-  await tx
-    .insert(invoices)
-    .values({ userId, cardId: card.id, mes, ...invoiceDates(mes, days) })
-    .onConflictDoNothing({ target: [invoices.cardId, invoices.mes] });
-  const [inv] = await tx
-    .select({ id: invoices.id })
-    .from(invoices)
-    .where(and(eq(invoices.cardId, card.id), eq(invoices.mes, mes)));
-  return inv.id;
-}
-
-async function insertPurchase(
-  tx: Tx,
-  userId: string,
-  card: CreditCard,
-  p: { descricao: string; categoryId: string | null; dataCompra: Date; valorTotal: number; parcelas: number; jaPagas: number; transactionId?: string },
-): Promise<string> {
-  const [purchase] = await tx
-    .insert(creditPurchases)
-    .values({
-      userId,
-      cardId: card.id,
-      descricao: p.descricao,
-      categoryId: p.categoryId,
-      valorTotal: p.valorTotal,
-      parcelas: p.parcelas,
-      dataCompra: p.dataCompra,
-      transactionId: p.transactionId,
-    })
-    .returning({ id: creditPurchases.id });
-
-  for (const planned of planInstallments(p, card)) {
-    await tx.insert(installments).values({
-      userId,
-      purchaseId: purchase.id,
-      invoiceId: await invoiceId(tx, userId, card, planned.mes),
-      numero: planned.numero,
-      valor: planned.valor,
-      paga: planned.paga,
-    });
-  }
-  return purchase.id;
-}
-
-export async function createPurchase(db: Db, userId: string, input: PurchaseInput): Promise<{ purchaseId: string }> {
-  validateCounts(input.parcelas, input.jaPagas);
-  const valorTotal = "valorTotal" in input ? input.valorTotal : input.valorParcela * input.parcelas;
-  if (!Number.isInteger(valorTotal) || valorTotal <= 0) throw new CreditError("Valor inválido");
-  return db.transaction(async (tx) => {
-    const card = await requireCard(tx, userId);
-    return { purchaseId: await insertPurchase(tx, userId, card, { ...input, valorTotal }) };
-  });
-}
-
-export async function convertTransaction(
-  db: Db,
-  userId: string,
-  transactionId: string,
-  input: { parcelas: number; jaPagas: number },
-): Promise<{ purchaseId: string }> {
-  validateCounts(input.parcelas, input.jaPagas);
-  return db.transaction(async (tx) => {
-    const card = await requireCard(tx, userId);
-    const [t] = await tx
-      .select()
-      .from(transactions)
-      .where(and(eq(transactions.id, transactionId), eq(transactions.userId, userId)));
-    if (!t) throw new CreditError("Transação não encontrada");
-    if (t.tipo !== "GASTO") throw new CreditError("Só gastos podem ir para o crédito");
-    if (t.convertidaCredito) throw new CreditError("Transação já convertida");
-
-    const purchaseId = await insertPurchase(tx, userId, card, {
-      descricao: t.descricao,
-      categoryId: t.categoryId,
-      dataCompra: t.dataHora,
-      valorTotal: -t.valor,
-      ...input,
-      transactionId,
-    });
-    await tx.update(transactions).set({ convertidaCredito: true }).where(eq(transactions.id, transactionId));
-    return { purchaseId };
-  });
-}
-
-/** Remove as compras ligadas às transações (parcelas em cascata). Usado também ao excluir importação. */
-export async function deletePurchasesOf(tx: Tx, userId: string, transactionIds: string[]): Promise<void> {
-  if (!transactionIds.length) return;
-  await tx
-    .delete(creditPurchases)
-    .where(and(eq(creditPurchases.userId, userId), inArray(creditPurchases.transactionId, transactionIds)));
-}
-
-export async function undoConversion(db: Db, userId: string, transactionId: string): Promise<void> {
-  await db.transaction(async (tx) => {
-    await deletePurchasesOf(tx, userId, [transactionId]);
-    await tx
-      .update(transactions)
-      .set({ convertidaCredito: false })
-      .where(and(eq(transactions.id, transactionId), eq(transactions.userId, userId)));
-  });
-}
-
-export async function listInvoices(db: Db, userId: string): Promise<(Invoice & { total: number })[]> {
+): Promise<(Invoice & { total: number; status: InvoiceStatus })[]> {
   const rows = await db
     .select({ invoice: invoices, total: sum(installments.valor) })
     .from(invoices)
-    .leftJoin(installments, eq(installments.invoiceId, invoices.id))
+    .leftJoin(installments, and(eq(installments.invoiceId, invoices.id), active))
     .where(eq(invoices.userId, userId))
     .groupBy(invoices.id)
     .orderBy(asc(invoices.mes));
-  return rows.map((r) => ({ ...r.invoice, total: Number(r.total ?? 0) }));
+  return rows.map((r) => ({ ...r.invoice, total: Number(r.total ?? 0), status: invoiceStatus(r.invoice) }));
 }
+
+export type InvoiceItem = {
+  purchaseId: string;
+  descricao: string;
+  dataCompra: Date;
+  numero: number;
+  parcelas: number;
+  valor: number;
+  categoryId: string | null;
+  cartaoFinal: string | null;
+  pareada: boolean;
+};
 
 export async function getInvoice(
   db: Db,
   userId: string,
   invoiceId: string,
-): Promise<{ invoice: Invoice; itens: { descricao: string; numero: number; parcelas: number; valor: number }[] } | null> {
+): Promise<{ invoice: Invoice; status: InvoiceStatus; itens: InvoiceItem[] } | null> {
   const [invoice] = await db
     .select()
     .from(invoices)
     .where(and(eq(invoices.id, invoiceId), eq(invoices.userId, userId)));
   if (!invoice) return null;
-  const itens = await db
+  const rows = await db
     .select({
+      purchaseId: creditPurchases.id,
       descricao: creditPurchases.descricao,
+      dataCompra: creditPurchases.dataCompra,
       numero: installments.numero,
       parcelas: creditPurchases.parcelas,
       valor: installments.valor,
+      categoryId: creditPurchases.categoryId,
+      cartaoFinal: creditPurchases.cartaoFinal,
     })
     .from(installments)
     .innerJoin(creditPurchases, eq(creditPurchases.id, installments.purchaseId))
-    .where(eq(installments.invoiceId, invoiceId))
+    .where(and(eq(installments.invoiceId, invoiceId), active))
     .orderBy(asc(creditPurchases.dataCompra), asc(creditPurchases.descricao));
-  return { invoice, itens };
+  const paired = pairedIndexes(rows);
+  return {
+    invoice,
+    status: invoiceStatus(invoice),
+    itens: rows.map((r, i) => ({ ...r, pareada: paired.has(i) })),
+  };
 }
 
 export async function markInvoicePaid(db: Db, userId: string, invoiceId: string): Promise<boolean> {
-  return db.transaction(async (tx) => {
-    const updated = await tx
-      .update(invoices)
-      .set({ paga: true, pagaEm: sql`now()` })
-      .where(and(eq(invoices.id, invoiceId), eq(invoices.userId, userId)))
-      .returning({ id: invoices.id });
-    if (!updated.length) return false;
-    await tx.update(installments).set({ paga: true }).where(eq(installments.invoiceId, invoiceId));
-    return true;
-  });
+  const updated = await db
+    .update(invoices)
+    .set({ paga: true, pagaEm: sql`now()` })
+    .where(and(eq(invoices.id, invoiceId), eq(invoices.userId, userId)))
+    .returning({ id: invoices.id });
+  return updated.length > 0;
+}
+
+export async function setPurchaseCategory(
+  db: Db,
+  userId: string,
+  purchaseId: string,
+  categoryId: string | null,
+): Promise<boolean> {
+  const updated = await db
+    .update(creditPurchases)
+    .set({ categoryId })
+    .where(and(eq(creditPurchases.id, purchaseId), eq(creditPurchases.userId, userId)))
+    .returning({ id: creditPurchases.id });
+  return updated.length > 0;
 }
 
 /** Parcelas das faturas que fecham no mês, para somar nos gastos do dashboard. */
@@ -217,5 +120,5 @@ export async function getInstallmentsForMonth(
     .from(installments)
     .innerJoin(invoices, eq(invoices.id, installments.invoiceId))
     .innerJoin(creditPurchases, eq(creditPurchases.id, installments.purchaseId))
-    .where(and(eq(installments.userId, userId), eq(invoices.mes, mes)));
+    .where(and(eq(installments.userId, userId), eq(invoices.mes, mes), active));
 }
