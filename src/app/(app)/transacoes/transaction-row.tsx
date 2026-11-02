@@ -6,16 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TableCell, TableRow } from "@/components/ui/table";
 import { formatBRL } from "@/domain/money";
 import type { TxType } from "@/domain/picpay-parser";
+import { TIPO_LABEL } from "@/domain/tx-type";
 import { PurchaseCategory } from "../cartao/purchase-category";
 import { createRuleFromTransaction, updateTransaction } from "./actions";
 
 const NONE = "__none__";
-
-export const TIPO_LABEL: Record<TxType, string> = {
-  GASTO: "Gasto",
-  RECEITA: "Receita",
-  MOVIMENTACAO: "Movimentação",
-};
 
 const VALOR_COLOR: Record<TxType, string> = {
   GASTO: "text-expense",

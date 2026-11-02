@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { TxType } from "@/domain/picpay-parser";
-import { TIPO_LABEL } from "../transacoes/transaction-row";
+import { TIPO_LABEL } from "@/domain/tx-type";
 import { deleteCategory, upsertCategory } from "./actions";
 
 type Category = { id: string; nome: string; cor: string; tipo: TxType };

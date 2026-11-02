@@ -9,9 +9,9 @@ import { getAvailableMonths, getCategories } from "@/db/queries";
 import { entriesTotal, entryLabels, filterEntries, parseOrigin } from "@/domain/entries";
 import { formatBRL } from "@/domain/money";
 import { currentMonth, parseMonth } from "@/domain/month";
-import type { TxType } from "@/domain/picpay-parser";
+import { parseTipo, TIPO_LABEL } from "@/domain/tx-type";
 import { requireUserId } from "@/lib/auth";
-import { TIPO_LABEL, TransactionRow } from "./transaction-row";
+import { TransactionRow } from "./transaction-row";
 
 type Props = { searchParams: Promise<{ mes?: string; categoria?: string; tipo?: string; origem?: string }> };
 
@@ -34,7 +34,7 @@ export default async function TransacoesPage({ searchParams }: Props) {
 
   const today = currentMonth();
   const month = parseMonth(sp.mes) ?? today;
-  const tipo = sp.tipo && sp.tipo in TIPO_LABEL ? (sp.tipo as TxType) : undefined;
+  const tipo = parseTipo(sp.tipo);
   const categoryId =
     sp.categoria === "none" || categories.some((c) => c.id === sp.categoria) ? sp.categoria : undefined;
   const origem = parseOrigin(sp.origem);
