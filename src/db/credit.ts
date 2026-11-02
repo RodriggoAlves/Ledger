@@ -1,4 +1,5 @@
 import { and, asc, eq, isNull, sql, sum } from "drizzle-orm";
+import type { InvoiceStatus } from "@/domain/invoice";
 import { pairedIndexes } from "@/domain/invoice-lines";
 import type { MonthKey } from "@/domain/month";
 import type { Db } from "./client";
@@ -19,7 +20,7 @@ export async function getCard(db: Db | Tx, userId: string): Promise<CreditCard |
   return card ?? null;
 }
 
-export type InvoiceStatus = "PAGA" | "FECHADA" | "PROJETADA";
+export type { InvoiceStatus } from "@/domain/invoice";
 
 export const invoiceStatus = (i: Pick<Invoice, "paga" | "importId">): InvoiceStatus =>
   i.paga ? "PAGA" : i.importId ? "FECHADA" : "PROJETADA";
@@ -86,6 +87,20 @@ export async function getInvoice(
   };
 }
 
+/** Fatura do cartão PicPay que fecha em `mes`. */
+export async function getInvoiceForMonth(
+  db: Db,
+  userId: string,
+  mes: MonthKey,
+): Promise<(Invoice & { status: InvoiceStatus }) | null> {
+  const [row] = await db
+    .select({ invoice: invoices })
+    .from(invoices)
+    .innerJoin(creditCards, eq(creditCards.id, invoices.cardId))
+    .where(and(eq(invoices.userId, userId), eq(invoices.mes, mes), eq(creditCards.banco, BANCO)));
+  return row ? { ...row.invoice, status: invoiceStatus(row.invoice) } : null;
+}
+
 export async function markInvoicePaid(db: Db, userId: string, invoiceId: string): Promise<boolean> {
   const updated = await db
     .update(invoices)
@@ -107,18 +122,4 @@ export async function setPurchaseCategory(
     .where(and(eq(creditPurchases.id, purchaseId), eq(creditPurchases.userId, userId)))
     .returning({ id: creditPurchases.id });
   return updated.length > 0;
-}
-
-/** Parcelas das faturas que fecham no mês, para somar nos gastos do dashboard. */
-export async function getInstallmentsForMonth(
-  db: Db,
-  userId: string,
-  mes: MonthKey,
-): Promise<{ valor: number; categoryId: string | null }[]> {
-  return db
-    .select({ valor: installments.valor, categoryId: creditPurchases.categoryId })
-    .from(installments)
-    .innerJoin(invoices, eq(invoices.id, installments.invoiceId))
-    .innerJoin(creditPurchases, eq(creditPurchases.id, installments.purchaseId))
-    .where(and(eq(installments.userId, userId), eq(invoices.mes, mes), active));
 }

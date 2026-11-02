@@ -1,20 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useTransition } from "react";
+import { useRuleOffer } from "@/components/rule-offer";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { formatBRL } from "@/domain/money";
 import type { TxType } from "@/domain/picpay-parser";
+import { PurchaseCategory } from "../cartao/purchase-category";
 import { createRuleFromTransaction, updateTransaction } from "./actions";
 
 const NONE = "__none__";
@@ -31,25 +23,79 @@ const VALOR_COLOR: Record<TxType, string> = {
   MOVIMENTACAO: "text-transfer",
 };
 
-export type RowData = {
-  id: string;
-  dataHora: string;
-  descricao: string;
-  valor: number;
-  tipo: TxType;
-  categoryId: string | null;
-  formaPagamento: string | null;
-};
+/** Linha da tabela: transação do extrato ou parcela da fatura (a categoria desta é da compra). */
+export type RowData =
+  | {
+      origem: "CONTA";
+      id: string;
+      data: string;
+      descricao: string;
+      valor: number;
+      tipo: TxType;
+      categoryId: string | null;
+      labels: string[];
+    }
+  | {
+      origem: "CARTAO";
+      id: string;
+      purchaseId: string;
+      data: string;
+      descricao: string;
+      valor: number;
+      categoryId: string | null;
+      labels: string[];
+    };
 
-export function TransactionRow({
-  tx,
-  categories,
-}: {
-  tx: RowData;
-  categories: { id: string; nome: string }[];
-}) {
+type Categories = { id: string; nome: string }[];
+
+export function TransactionRow({ row, categories }: { row: RowData; categories: Categories }) {
+  return row.origem === "CARTAO" ? (
+    <CardEntryRow row={row} categories={categories} />
+  ) : (
+    <AccountEntryRow row={row} categories={categories} />
+  );
+}
+
+function Description({ descricao, labels }: { descricao: string; labels: string[] }) {
+  return (
+    <TableCell className="min-w-40">
+      {descricao}
+      {labels.map((label) => (
+        <span key={label} className="ml-2 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          {label}
+        </span>
+      ))}
+    </TableCell>
+  );
+}
+
+/** Parcela da fatura: só a categoria é editável, e vale para a compra inteira. */
+function CardEntryRow({ row, categories }: { row: Extract<RowData, { origem: "CARTAO" }>; categories: Categories }) {
+  return (
+    <TableRow>
+      <TableCell className="whitespace-nowrap">
+        {new Date(row.data).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
+      </TableCell>
+      <Description descricao={row.descricao} labels={row.labels} />
+      <TableCell className="text-muted-foreground">{TIPO_LABEL.GASTO}</TableCell>
+      <TableCell>
+        <PurchaseCategory
+          purchaseId={row.purchaseId}
+          descricao={row.descricao}
+          categoryId={row.categoryId}
+          categories={categories}
+        />
+      </TableCell>
+      <TableCell className={`text-right whitespace-nowrap ${row.valor < 0 ? "text-expense" : "text-income"}`}>
+        {formatBRL(row.valor)}
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function AccountEntryRow({ row, categories }: { row: Extract<RowData, { origem: "CONTA" }>; categories: Categories }) {
   const [pending, startTransition] = useTransition();
-  const [ask, setAsk] = useState<{ categoryId: string; nome: string } | null>(null);
+  const offerRule = useRuleOffer();
 
   const categoryItems = [{ value: NONE, label: "Sem categoria" }, ...categories.map((c) => ({ value: c.id, label: c.nome }))];
   const tipoItems = Object.entries(TIPO_LABEL).map(([value, label]) => ({ value, label }));
@@ -57,28 +103,26 @@ export function TransactionRow({
   function onCategory(value: string | null) {
     const categoryId = !value || value === NONE ? null : value;
     startTransition(async () => {
-      await updateTransaction(tx.id, { categoryId });
-      if (categoryId) setAsk({ categoryId, nome: categories.find((c) => c.id === categoryId)!.nome });
+      await updateTransaction(row.id, { categoryId });
+      if (categoryId) {
+        offerRule({
+          descricao: row.descricao,
+          nome: categories.find((c) => c.id === categoryId)!.nome,
+          alvo: "transações",
+          criar: () => createRuleFromTransaction(row.id, categoryId),
+        });
+      }
     });
   }
 
   function onTipo(tipo: TxType) {
-    startTransition(() => updateTransaction(tx.id, { tipo }));
-  }
-
-  function onCreateRule() {
-    if (!ask) return;
-    startTransition(async () => {
-      const { aplicadas } = await createRuleFromTransaction(tx.id, ask.categoryId);
-      toast.success(`Regra criada · ${aplicadas} transações atualizadas`);
-      setAsk(null);
-    });
+    startTransition(() => updateTransaction(row.id, { tipo }));
   }
 
   return (
     <TableRow className={pending ? "opacity-60" : undefined}>
       <TableCell className="whitespace-nowrap">
-        {new Date(tx.dataHora).toLocaleString("pt-BR", {
+        {new Date(row.data).toLocaleString("pt-BR", {
           timeZone: "UTC",
           day: "2-digit",
           month: "2-digit",
@@ -86,14 +130,9 @@ export function TransactionRow({
           minute: "2-digit",
         })}
       </TableCell>
-      <TableCell className="min-w-40">
-        {tx.descricao}
-        {tx.formaPagamento === "Com cartão" && (
-          <span className="ml-2 rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-muted-foreground">Débito</span>
-        )}
-      </TableCell>
+      <Description descricao={row.descricao} labels={row.labels} />
       <TableCell>
-        <Select items={tipoItems} value={tx.tipo} onValueChange={(v) => v && onTipo(v as TxType)} disabled={pending}>
+        <Select items={tipoItems} value={row.tipo} onValueChange={(v) => v && onTipo(v as TxType)} disabled={pending}>
           <SelectTrigger size="sm" className="w-36">
             <SelectValue />
           </SelectTrigger>
@@ -107,7 +146,7 @@ export function TransactionRow({
         </Select>
       </TableCell>
       <TableCell>
-        <Select items={categoryItems} value={tx.categoryId ?? NONE} onValueChange={onCategory} disabled={pending}>
+        <Select items={categoryItems} value={row.categoryId ?? NONE} onValueChange={onCategory} disabled={pending}>
           <SelectTrigger size="sm" className="w-40">
             <SelectValue />
           </SelectTrigger>
@@ -120,27 +159,7 @@ export function TransactionRow({
           </SelectContent>
         </Select>
       </TableCell>
-      <TableCell className={`text-right whitespace-nowrap ${VALOR_COLOR[tx.tipo]}`}>{formatBRL(tx.valor)}</TableCell>
-
-      <Dialog open={ask !== null} onOpenChange={(open) => !open && setAsk(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Criar regra?</DialogTitle>
-            <DialogDescription>
-              Aplicar &ldquo;{tx.descricao}&rdquo; → {ask?.nome} nas próximas importações e nas transações sem
-              categoria?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAsk(null)}>
-              Não
-            </Button>
-            <Button onClick={onCreateRule} disabled={pending}>
-              Sim, criar regra
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <TableCell className={`text-right whitespace-nowrap ${VALOR_COLOR[row.tipo]}`}>{formatBRL(row.valor)}</TableCell>
     </TableRow>
   );
 }

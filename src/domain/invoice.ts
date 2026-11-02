@@ -3,6 +3,9 @@ import { monthKey, type MonthKey } from "./month";
 /** Datas em "horário de parede" UTC, como o restante do domínio (ver month.ts). */
 export type CardDays = { diaFechamento: number; diaVencimento: number };
 
+/** Paga; Fechada = importada e não paga; Projetada = só parcelas futuras conhecidas. */
+export type InvoiceStatus = "PAGA" | "FECHADA" | "PROJETADA";
+
 export type PlannedInstallment = { numero: number; mes: MonthKey; valor: number; paga: boolean };
 
 const key = (y: number, m0: number) => {

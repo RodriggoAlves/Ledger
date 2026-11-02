@@ -1,15 +1,18 @@
-import { ArrowDownLeft, ArrowUpRight, Crown, Upload } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, CreditCard, Crown, Upload } from "lucide-react";
 import Link from "next/link";
+import { MonthPicker } from "@/components/month-picker";
 import { Card } from "@/components/ui/card";
 import { db } from "@/db/client";
-import { getInstallmentsForMonth } from "@/db/credit";
-import { getAvailableMonths, getCategories, getTransactions } from "@/db/queries";
+import { getInvoiceForMonth } from "@/db/credit";
+import { getMonthEntries } from "@/db/entries";
+import { getAvailableMonths, getCategories } from "@/db/queries";
+import { entriesTotal, filterEntries } from "@/domain/entries";
+import { invoiceCard } from "@/domain/invoice-card";
 import { formatBRL } from "@/domain/money";
-import { formatMonth, parseMonth } from "@/domain/month";
-import { installmentsAsTxs, summarizeByCategory } from "@/domain/summary";
+import { currentMonth, formatMonth, parseMonth } from "@/domain/month";
+import { summarizeSpending } from "@/domain/summary";
 import { requireUserId } from "@/lib/auth";
 import { CategoryDonut } from "./category-donut";
-import { MonthPills } from "./month-pills";
 
 type Props = { searchParams: Promise<{ mes?: string }> };
 
@@ -35,19 +38,23 @@ export default async function DashboardPage({ searchParams }: Props) {
     );
   }
 
-  const month = parseMonth(sp.mes) ?? months[0];
-  const [txs, categories, parcelas] = await Promise.all([
-    getTransactions(userId, { month }),
+  const today = currentMonth();
+  const month = parseMonth(sp.mes) ?? today;
+  // Uma lista só (extrato + parcelas da fatura que fecha no mês) para todos os números da página.
+  const [entries, categories, fatura] = await Promise.all([
+    getMonthEntries(db, userId, month),
     getCategories(userId),
-    getInstallmentsForMonth(db, userId, month),
+    getInvoiceForMonth(db, userId, month),
   ]);
-  const summary = summarizeByCategory([...txs, ...installmentsAsTxs(parcelas)], categories);
-  const entradas = txs.filter((t) => t.tipo === "RECEITA");
-  const receitas = entradas.reduce((s, t) => s + t.valor, 0);
-  const gastos = summary.reduce((s, c) => s + c.total, 0);
+  const resumo = summarizeSpending(entries, categories);
+  const entradas = entries.filter((e) => e.tipo === "RECEITA");
+  const receitas = entradas.reduce((s, e) => s + e.valor, 0);
+  const gastos = resumo.total;
   const saldo = receitas - gastos;
-  const usado = receitas > 0 ? Math.min(100, Math.round((gastos / receitas) * 100)) : gastos > 0 ? 100 : 0;
-  const top = summary[0];
+  // Créditos podem deixar os gastos negativos; a barra não passa de 0–100%.
+  const usado = receitas > 0 ? Math.max(0, Math.min(100, Math.round((gastos / receitas) * 100))) : gastos > 0 ? 100 : 0;
+  const top = resumo.categorias[0];
+  const cartao = invoiceCard(fatura, -entriesTotal(filterEntries(entries, { origem: "CARTAO" })), month);
 
   return (
     <div className="space-y-6">
@@ -56,7 +63,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           <p className="text-sm text-muted-foreground">Resumo do mês</p>
           <h1 className="text-3xl font-semibold capitalize">{formatMonth(month)}</h1>
         </div>
-        <MonthPills months={months} current={month} />
+        <MonthPicker value={month} today={today} available={months} />
       </div>
 
       <section className="aurora relative overflow-hidden rounded-3xl p-6 text-white shadow-[0_30px_70px_-35px_var(--brand-to)] sm:p-8">
@@ -93,7 +100,7 @@ export default async function DashboardPage({ searchParams }: Props) {
         </div>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           icon={<ArrowDownLeft className="size-4" />}
           tone="income"
@@ -106,7 +113,15 @@ export default async function DashboardPage({ searchParams }: Props) {
           tone="expense"
           label="Gastos"
           value={formatBRL(gastos)}
-          hint={`em ${summary.length} ${summary.length === 1 ? "categoria" : "categorias"}`}
+          hint={`em ${resumo.categorias.length} ${resumo.categorias.length === 1 ? "categoria" : "categorias"}`}
+        />
+        <Stat
+          icon={<CreditCard className="size-4" />}
+          tone="expense"
+          label="Fatura do cartão"
+          value={cartao.value}
+          hint={cartao.hint}
+          href={cartao.href}
         />
         <Stat
           icon={<Crown className="size-4" />}
@@ -125,7 +140,7 @@ export default async function DashboardPage({ searchParams }: Props) {
           </Link>
         </div>
         <div className="px-(--card-spacing)">
-          {summary.length === 0 ? (
+          {resumo.categorias.length === 0 && resumo.creditos === 0 ? (
             <p className="text-muted-foreground">
               Nenhum gasto neste mês.{" "}
               <Link href="/importar" className="text-primary underline">
@@ -135,9 +150,9 @@ export default async function DashboardPage({ searchParams }: Props) {
             </p>
           ) : (
             <div className="grid items-center gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-              <CategoryDonut data={summary} total={gastos} />
+              {resumo.categorias.length > 0 && <CategoryDonut data={resumo.categorias} total={gastos} />}
               <ul className="space-y-1">
-                {summary.map((c) => (
+                {resumo.categorias.map((c) => (
                   <li key={c.categoryId ?? "none"}>
                     <Link
                       href={`/transacoes?mes=${month}&categoria=${c.categoryId ?? "none"}&tipo=GASTO`}
@@ -167,6 +182,15 @@ export default async function DashboardPage({ searchParams }: Props) {
                     </Link>
                   </li>
                 ))}
+                {resumo.creditos < 0 && (
+                  <li className="flex items-center gap-3 px-3 py-2.5 text-muted-foreground">
+                    <span className="size-2.5 shrink-0 rounded-full bg-muted-foreground/40" aria-hidden />
+                    <span className="flex-1 truncate font-medium">Créditos e estornos</span>
+                    <span className="w-28 text-right font-display text-sm font-semibold tabular-nums">
+                      {formatBRL(resumo.creditos)}
+                    </span>
+                  </li>
+                )}
               </ul>
             </div>
           )}
@@ -199,15 +223,18 @@ function Stat({
   label,
   value,
   hint,
+  href,
 }: {
   icon: React.ReactNode;
   tone: keyof typeof TONES;
   label: string;
   value: string;
   hint: string;
+  /** Com link, o card inteiro é clicável. */
+  href?: string | null;
 }) {
-  return (
-    <Card size="sm" className="gap-3 px-(--card-spacing)">
+  const card = (
+    <Card size="sm" className="h-full gap-3 px-(--card-spacing)">
       <div className="flex items-center gap-2.5">
         <span className={`grid size-8 place-items-center rounded-xl ${TONES[tone]}`} aria-hidden>
           {icon}
@@ -217,5 +244,15 @@ function Stat({
       <p className="truncate font-display text-2xl font-semibold tabular-nums">{value}</p>
       <p className="text-xs text-muted-foreground">{hint}</p>
     </Card>
+  );
+  return href ? (
+    <Link
+      href={href}
+      className="block rounded-2xl transition-shadow hover:ring-1 hover:ring-primary/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+    >
+      {card}
+    </Link>
+  ) : (
+    card
   );
 }

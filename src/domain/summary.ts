@@ -12,21 +12,20 @@ export type CategoryTotal = {
 type SummaryTx = { valor: number; tipo: TxType; categoryId: string | null };
 type SummaryCategory = { id: string; nome: string; cor: string };
 
-/** Parcelas de cartão (positivo; estorno negativo) no formato de transação de gasto, para somar nos totais. */
-export function installmentsAsTxs(parcelas: { valor: number; categoryId: string | null }[]): SummaryTx[] {
-  return parcelas.map((p) => ({ valor: -p.valor, tipo: "GASTO", categoryId: p.categoryId }));
-}
-
 const UNCATEGORIZED = { nome: "Sem categoria", cor: "#a1a1aa" };
 
-/** Gastos do conjunto por categoria; ignora receitas e movimentações. */
-export function summarizeByCategory(txs: SummaryTx[], categories: SummaryCategory[]): CategoryTotal[] {
+/** Gasto líquido por categoria (positivo = gasto); ignora receitas e movimentações. */
+function netByCategory(txs: SummaryTx[]): Map<string | null, number> {
   const totals = new Map<string | null, number>();
   for (const t of txs) {
     if (t.tipo !== "GASTO") continue;
     totals.set(t.categoryId, (totals.get(t.categoryId) ?? 0) - t.valor);
   }
+  return totals;
+}
 
+/** Categorias com gasto positivo, maior primeiro; percentual sobre a soma delas. */
+function positiveCategories(totals: Map<string | null, number>, categories: SummaryCategory[]): CategoryTotal[] {
   const byId = new Map(categories.map((c) => [c.id, c]));
   const positive = [...totals].filter(([, total]) => total > 0);
   const sum = positive.reduce((s, [, total]) => s + total, 0);
@@ -50,4 +49,24 @@ export function summarizeByCategory(txs: SummaryTx[], categories: SummaryCategor
     result[0].percentual = Math.round((100 - others) * 10) / 10;
   }
   return result;
+}
+
+export type SpendingSummary = {
+  /** Só categorias com gasto positivo, maior primeiro; percentual sobre a soma delas. */
+  categorias: CategoryTotal[];
+  /** Soma das categorias que ficaram negativas no mês (≤ 0). */
+  creditos: number;
+  /** Gastos do mês = soma de `categorias` + `creditos`. */
+  total: number;
+};
+
+/**
+ * Gastos do mês por categoria. Crédito que deixa uma categoria negativa (ex.: "pula compra")
+ * não vira fatia, mas reduz o total em `creditos`.
+ */
+export function summarizeSpending(entries: SummaryTx[], categories: SummaryCategory[]): SpendingSummary {
+  const totals = netByCategory(entries);
+  const categorias = positiveCategories(totals, categories);
+  const creditos = [...totals.values()].filter((t) => t < 0).reduce((s, t) => s + t, 0);
+  return { categorias, creditos, total: categorias.reduce((s, c) => s + c.total, 0) + creditos };
 }

@@ -1,8 +1,7 @@
 import "server-only";
-import { and, desc, eq, gte, inArray, isNull, lt, sql, type SQL } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Rule } from "@/domain/categorization";
-import { monthRange, type MonthKey } from "@/domain/month";
-import type { TxType } from "@/domain/picpay-parser";
+import type { MonthKey } from "@/domain/month";
 import { db } from "./client";
 import { categories, categoryRules, invoices, transactions } from "./schema";
 
@@ -52,23 +51,4 @@ export async function getAvailableMonths(userId: string): Promise<MonthKey[]> {
     db.selectDistinct({ month: invoices.mes }).from(invoices).where(eq(invoices.userId, userId)),
   ]);
   return [...new Set([...txMonths, ...invoiceMonths].map((r) => r.month))].sort().reverse();
-}
-
-export type TransactionFilters = { month: MonthKey; categoryId?: string | "none"; tipo?: TxType };
-
-export async function getTransactions(userId: string, filters: TransactionFilters) {
-  const [start, end] = monthRange(filters.month);
-  const where: SQL[] = [
-    eq(transactions.userId, userId),
-    gte(transactions.dataHora, start),
-    lt(transactions.dataHora, end),
-  ];
-  if (filters.categoryId === "none") where.push(isNull(transactions.categoryId));
-  else if (filters.categoryId) where.push(eq(transactions.categoryId, filters.categoryId));
-  if (filters.tipo) where.push(eq(transactions.tipo, filters.tipo));
-  return db
-    .select()
-    .from(transactions)
-    .where(and(...where))
-    .orderBy(desc(transactions.dataHora));
 }

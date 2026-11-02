@@ -1,6 +1,7 @@
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RuleOfferProvider } from "@/components/rule-offer";
 import { Card } from "@/components/ui/card";
 import { db } from "@/db/client";
 import { getInvoice } from "@/db/credit";
@@ -11,7 +12,7 @@ import { formatMonth, monthKey } from "@/domain/month";
 import { requireUserId } from "@/lib/auth";
 import { MarkPaidButton } from "../mark-paid-button";
 import { StatusBadge } from "../status-badge";
-import { PurchaseCategory } from "./purchase-category";
+import { PurchaseCategory } from "../purchase-category";
 
 const day = (d: Date) => d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
 
@@ -49,41 +50,43 @@ export default async function FaturaPage({ params }: { params: Promise<{ faturaI
         )}
       </div>
 
-      <Card className="gap-0 py-1">
-        {itens.length === 0 && <p className="px-(--card-spacing) py-3 text-muted-foreground">Nenhuma parcela.</p>}
-        <ul className="divide-y">
-          {itens.map((item, i) => (
-            <li
-              key={i}
-              className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-(--card-spacing) py-3 ${item.pareada ? "text-muted-foreground line-through" : ""}`}
-            >
-              <span className="w-20 text-sm tabular-nums">{day(item.dataCompra)}</span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-medium">{item.descricao}</span>
-                {item.cartaoFinal && <span className="text-xs text-muted-foreground">final {item.cartaoFinal}</span>}
-              </span>
-              {item.parcelas > 1 && (
-                <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium tabular-nums">
-                  {item.numero}/{item.parcelas}
+      <RuleOfferProvider>
+        <Card className="gap-0 py-1">
+          {itens.length === 0 && <p className="px-(--card-spacing) py-3 text-muted-foreground">Nenhuma parcela.</p>}
+          <ul className="divide-y">
+            {itens.map((item, i) => (
+              <li
+                key={i}
+                className={`flex flex-wrap items-center gap-x-3 gap-y-2 px-(--card-spacing) py-3 ${item.pareada ? "text-muted-foreground line-through" : ""}`}
+              >
+                <span className="w-20 text-sm tabular-nums">{day(item.dataCompra)}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium">{item.descricao}</span>
+                  {item.cartaoFinal && <span className="text-xs text-muted-foreground">final {item.cartaoFinal}</span>}
                 </span>
-              )}
-              <PurchaseCategory
-                purchaseId={item.purchaseId}
-                descricao={item.descricao}
-                categoryId={item.categoryId}
-                categories={options}
-              />
-              <span className={`w-28 text-right tabular-nums ${item.valor < 0 ? "text-income" : ""}`}>
-                {formatBRL(item.valor)}
-              </span>
-            </li>
-          ))}
-        </ul>
-        <div className="flex items-center justify-between border-t px-(--card-spacing) py-3">
-          <span className="font-semibold">Total</span>
-          <span className="font-display text-lg font-semibold tabular-nums">{formatBRL(total)}</span>
-        </div>
-      </Card>
+                {item.parcelas > 1 && (
+                  <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-medium tabular-nums">
+                    {item.numero}/{item.parcelas}
+                  </span>
+                )}
+                <PurchaseCategory
+                  purchaseId={item.purchaseId}
+                  descricao={item.descricao}
+                  categoryId={item.categoryId}
+                  categories={options}
+                />
+                <span className={`w-28 text-right tabular-nums ${item.valor < 0 ? "text-income" : ""}`}>
+                  {formatBRL(item.valor)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="flex items-center justify-between border-t px-(--card-spacing) py-3">
+            <span className="font-semibold">Total</span>
+            <span className="font-display text-lg font-semibold tabular-nums">{formatBRL(total)}</span>
+          </div>
+        </Card>
+      </RuleOfferProvider>
     </div>
   );
 }

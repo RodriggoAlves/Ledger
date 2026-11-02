@@ -4,9 +4,11 @@ import { config } from "dotenv";
 import { and, eq, inArray, isNotNull, like } from "drizzle-orm";
 import { afterAll, describe, expect, test } from "vitest";
 import { createDb, type Db } from "@/db/client";
-import { CreditError, getInstallmentsForMonth, listInvoices, setPurchaseCategory } from "@/db/credit";
+import { CreditError, getInvoiceForMonth, listInvoices, setPurchaseCategory } from "@/db/credit";
+import { getMonthEntries } from "@/db/entries";
 import { applyInvoiceImport, deleteInvoiceImport, listInvoiceImports, loadCardState } from "@/db/invoice-import";
-import { categories, creditCards, creditPurchases, installments, invoiceImports, invoices } from "@/db/schema";
+import { categories, creditCards, creditPurchases, installments, invoiceImports, invoices, transactions } from "@/db/schema";
+import { entriesTotal, filterEntries } from "@/domain/entries";
 import { buildInvoiceImportPlan } from "@/domain/invoice-import-plan";
 import { resolveLines } from "@/domain/invoice-lines";
 import { parsePicPayInvoice } from "@/domain/picpay-invoice-parser";
@@ -86,8 +88,8 @@ describe.skipIf(!url)("importação de fatura (integração)", { timeout: 60_000
     try {
       await importText(userId, SEPTEMBER, "set.pdf");
       await importText(userId, OCTOBER, "out.pdf");
-      const october = await getInstallmentsForMonth(db, userId, "2026-10");
-      expect(october.map((i) => i.valor).sort((a, b) => a - b)).toEqual([14647, 23088]);
+      const october = filterEntries(await getMonthEntries(db, userId, "2026-10"), { origem: "CARTAO" });
+      expect(october.map((e) => e.valor).sort((a, b) => a - b)).toEqual([-23088, -14647]);
     } finally {
       await cleanup([userId]);
     }
@@ -148,6 +150,44 @@ describe.skipIf(!url)("importação de fatura (integração)", { timeout: 60_000
       const [after] = await db.select().from(creditPurchases).where(eq(creditPurchases.id, p.id));
       expect(after.categoryId).toBe(cat.id);
       expect(await db.select().from(invoices).where(eq(invoices.userId, other))).toHaveLength(0);
+    } finally {
+      await cleanup([userId, other]);
+    }
+  });
+
+  test("month entries bring both origins and match the invoice total", async () => {
+    const userId = randomUUID();
+    const other = randomUUID();
+    const tx = (owner: string, hash: string) => ({
+      userId: owner,
+      dataHora: new Date("2026-09-10T12:00:00Z"),
+      descricao: "TESTE",
+      tipoOriginal: "Pix enviado",
+      valor: -1000,
+      tipo: "GASTO" as const,
+      origem: "CSV" as const,
+      hashUnico: hash,
+    });
+    try {
+      await importText(userId, SEPTEMBER, "set.pdf");
+      await db.insert(transactions).values([tx(userId, "e1"), tx(other, "e2")]);
+      const entries = await getMonthEntries(db, userId, "2026-09");
+      expect(filterEntries(entries, { origem: "CONTA" })).toHaveLength(1);
+      expect(-entriesTotal(filterEntries(entries, { origem: "CARTAO" }))).toBe(725);
+    } finally {
+      await db.delete(transactions).where(inArray(transactions.userId, [userId, other]));
+      await cleanup([userId, other]);
+    }
+  });
+
+  test("getInvoiceForMonth finds the invoice by closing month", async () => {
+    const userId = randomUUID();
+    const other = randomUUID();
+    try {
+      await importText(userId, SEPTEMBER, "set.pdf");
+      expect(await getInvoiceForMonth(db, userId, "2026-09")).toMatchObject({ mes: "2026-09", status: "FECHADA" });
+      expect(await getInvoiceForMonth(db, userId, "2030-01")).toBeNull();
+      expect(await getInvoiceForMonth(db, other, "2026-09")).toBeNull();
     } finally {
       await cleanup([userId, other]);
     }

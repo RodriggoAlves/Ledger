@@ -21,3 +21,10 @@ export function monthRange(month: MonthKey): [Date, Date] {
 export function formatMonth(month: MonthKey): string {
   return monthRange(month)[0].toLocaleDateString("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" });
 }
+
+/** Mês corrente no relógio do Brasil (o servidor roda em UTC). */
+export function currentMonth(now: Date = new Date(), timeZone = "America/Sao_Paulo"): MonthKey {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit" }).formatToParts(now);
+  const get = (type: string) => parts.find((p) => p.type === type)!.value;
+  return `${get("year")}-${get("month")}`;
+}
