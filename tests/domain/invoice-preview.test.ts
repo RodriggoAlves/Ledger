@@ -24,15 +24,15 @@ const plan: InvoiceImportPlan = {
   semCategoria: 0,
 };
 
-test("preview lists only the first missing installment of each purchase", () => {
+test("preview names months by due date and lists the first missing installment of each purchase", () => {
   expect(toInvoicePreview(plan)).toEqual({
-    mes: "2026-10",
+    mes: "2026-11",
     vencimento: "05/11/2026",
     totalGeral: 37735,
     novas: 0,
     confirmadas: 2,
     naoVieram: ["AMAZON BR 9/10 era esperada e não veio"],
-    pagaMes: "2026-09",
+    pagaMes: "2026-10",
     semCategoria: 0,
     ignoradas: 1,
   });

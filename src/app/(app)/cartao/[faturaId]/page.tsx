@@ -7,7 +7,7 @@ import { getInvoice } from "@/db/credit";
 import { getCategories } from "@/db/queries";
 import { isUuid } from "@/domain/guards";
 import { formatBRL } from "@/domain/money";
-import { formatMonth } from "@/domain/month";
+import { formatMonth, monthKey } from "@/domain/month";
 import { requireUserId } from "@/lib/auth";
 import { MarkPaidButton } from "../mark-paid-button";
 import { StatusBadge } from "../status-badge";
@@ -37,7 +37,7 @@ export default async function FaturaPage({ params }: { params: Promise<{ faturaI
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-semibold capitalize">Fatura de {formatMonth(invoice.mes)}</h1>
+          <h1 className="text-3xl font-semibold capitalize">Fatura de {formatMonth(monthKey(invoice.vencimento))}</h1>
           <p className="text-sm text-muted-foreground">
             Fecha em {day(invoice.fechamento)} e vence em {day(invoice.vencimento)}
           </p>

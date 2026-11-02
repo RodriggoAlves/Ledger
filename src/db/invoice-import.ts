@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNotNull, notExists } from "drizzle-orm";
 import { invoiceDates } from "@/domain/invoice";
 import type { CardState, InvoiceImportPlan } from "@/domain/invoice-import-plan";
-import { formatMonth, type MonthKey } from "@/domain/month";
+import { formatMonth, monthKey, type MonthKey } from "@/domain/month";
 import type { Db } from "./client";
 import { BANCO, CreditError, getCard } from "./credit";
 import { creditCards, creditPurchases, installments, invoiceImports, invoices, type CreditCard } from "./schema";
@@ -180,21 +180,23 @@ export async function applyInvoiceImport(
   });
 }
 
+/** `mes` é o mês de vencimento, como o banco nomeia a fatura. */
 export type InvoiceImportSummary = { id: string; nomeArquivo: string; criadoEm: Date; mes: MonthKey };
 
 /** Importações de fatura, da fatura mais recente para a mais antiga. */
 export async function listInvoiceImports(db: Db, userId: string): Promise<InvoiceImportSummary[]> {
-  return db
+  const rows = await db
     .select({
       id: invoiceImports.id,
       nomeArquivo: invoiceImports.nomeArquivo,
       criadoEm: invoiceImports.criadoEm,
-      mes: invoices.mes,
+      vencimento: invoices.vencimento,
     })
     .from(invoiceImports)
     .innerJoin(invoices, eq(invoices.id, invoiceImports.invoiceId))
     .where(eq(invoiceImports.userId, userId))
     .orderBy(desc(invoices.mes));
+  return rows.map(({ vencimento, ...r }) => ({ ...r, mes: monthKey(vencimento) }));
 }
 
 /**
@@ -211,12 +213,12 @@ export async function deleteInvoiceImport(db: Db, userId: string, importId: stri
     if (!imp) return null;
 
     const [latest] = await tx
-      .select({ mes: invoices.mes })
+      .select({ mes: invoices.mes, vencimento: invoices.vencimento })
       .from(invoices)
       .where(and(eq(invoices.cardId, imp.cardId), isNotNull(invoices.importId)))
       .orderBy(desc(invoices.mes))
       .limit(1);
-    if (latest.mes !== imp.mes) throw new CreditError(`Exclua primeiro a fatura de ${formatMonth(latest.mes)}`);
+    if (latest.mes !== imp.mes) throw new CreditError(`Exclua primeiro a fatura de ${formatMonth(monthKey(latest.vencimento))}`);
 
     await tx
       .update(installments)

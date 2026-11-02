@@ -5,7 +5,7 @@ import { db } from "@/db/client";
 import { listInvoices } from "@/db/credit";
 import { listInvoiceImports } from "@/db/invoice-import";
 import { formatBRL } from "@/domain/money";
-import { formatMonth } from "@/domain/month";
+import { formatMonth, monthKey } from "@/domain/month";
 import { requireUserId } from "@/lib/auth";
 import { InvoiceImportForm } from "./invoice-import-form";
 import { InvoiceImportHistory } from "./invoice-import-history";
@@ -40,7 +40,7 @@ export default async function CartaoPage() {
                     className="flex items-center gap-3 px-(--card-spacing) py-3 transition-colors hover:bg-accent/50 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium capitalize">{formatMonth(f.mes)}</p>
+                      <p className="font-medium capitalize">{formatMonth(monthKey(f.vencimento))}</p>
                       <p className="text-xs text-muted-foreground">Vence em {day(f.vencimento)}</p>
                     </div>
                     <StatusBadge status={f.status} />

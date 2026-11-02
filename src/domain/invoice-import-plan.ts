@@ -1,5 +1,5 @@
 import { matchCategory, type Rule } from "./categorization";
-import { addMonths } from "./invoice";
+import { addMonths, dueMonth } from "./invoice";
 import type { InvoiceLine } from "./invoice-lines";
 import { formatMonth, monthKey, type MonthKey } from "./month";
 import type { ParsedInvoice } from "./picpay-invoice-parser";
@@ -78,9 +78,11 @@ export function buildInvoiceImportPlan(
   rules: Rule[],
 ): InvoiceImportPlan {
   const mes = monthKey(parsed.fechamento);
-  if (state.importedMonths.includes(mes)) throw new InvoiceAlreadyImportedError(mes);
+  const days = { diaFechamento: parsed.fechamento.getUTCDate(), diaVencimento: parsed.vencimento.getUTCDate() };
+  // Mensagens usam o mês de vencimento, como o banco nomeia a fatura.
+  if (state.importedMonths.includes(mes)) throw new InvoiceAlreadyImportedError(dueMonth(mes, days));
   const latest = state.importedMonths.reduce<MonthKey | null>((max, m) => (max && max > m ? max : m), null);
-  if (latest && latest > mes) throw new InvoiceOutOfOrderError(latest);
+  if (latest && latest > mes) throw new InvoiceOutOfOrderError(dueMonth(latest, days));
 
   const byChave = new Map(state.purchases.map((p) => [p.chave, p]));
   const seen = new Set<string>();

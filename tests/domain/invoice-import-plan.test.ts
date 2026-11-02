@@ -139,9 +139,10 @@ describe("next month", () => {
   });
 });
 
-test("refuses an already imported month", () => {
+test("refuses an already imported month, named by its due month like the bank", () => {
+  // Fecha em 29/09 e vence em 05/10: para o usuário é a fatura de outubro.
   expect(() => plan(september, { importedMonths: ["2026-09"], purchases: [] })).toThrow(
-    new InvoiceAlreadyImportedError("2026-09"),
+    "A fatura de outubro de 2026 já foi importada",
   );
   expect(new InvoiceAlreadyImportedError("2026-09").message).toBe("A fatura de setembro de 2026 já foi importada");
 });
@@ -163,7 +164,7 @@ test("a refund arriving in a later invoice is a new purchase, not the original o
 
 test("refuses a month older than the latest imported", () => {
   expect(() => plan(september, { importedMonths: ["2026-10"], purchases: [] })).toThrow(
-    "Importe as faturas em ordem: a de outubro de 2026 já foi importada",
+    "Importe as faturas em ordem: a de novembro de 2026 já foi importada",
   );
 });
 

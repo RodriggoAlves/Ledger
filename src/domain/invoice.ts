@@ -1,4 +1,4 @@
-import type { MonthKey } from "./month";
+import { monthKey, type MonthKey } from "./month";
 
 /** Datas em "horário de parede" UTC, como o restante do domínio (ver month.ts). */
 export type CardDays = { diaFechamento: number; diaVencimento: number };
@@ -28,6 +28,14 @@ export function invoiceMonthFor(dataCompra: Date, diaFechamento: number): MonthK
   const m0 = dataCompra.getUTCMonth();
   const closing = clampedDay(y, m0, diaFechamento);
   return key(y, dataCompra.getUTCDate() <= closing ? m0 : m0 + 1);
+}
+
+/**
+ * Mês de vencimento: é como o banco e o usuário chamam a fatura ("fatura de novembro" vence em
+ * 05/11). O `mes` interno continua sendo o do fechamento, que define em que mês o gasto conta.
+ */
+export function dueMonth(mes: MonthKey, card: CardDays): MonthKey {
+  return monthKey(invoiceDates(mes, card).vencimento);
 }
 
 export function invoiceDates(mes: MonthKey, card: CardDays): { fechamento: Date; vencimento: Date } {

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { addMonths, invoiceDates, invoiceMonthFor, planInstallments, splitInstallments } from "@/domain/invoice";
+import { addMonths, dueMonth, invoiceDates, invoiceMonthFor, planInstallments, splitInstallments } from "@/domain/invoice";
 
 const card = { diaFechamento: 10, diaVencimento: 17 };
 const d = (iso: string) => new Date(`${iso}T12:00:00Z`);
@@ -60,4 +60,11 @@ test("planInstallments spreads over invoices and marks paid ones", () => {
     { numero: 2, mes: "2026-05", valor: 3333, paga: false },
     { numero: 3, mes: "2026-06", valor: 3333, paga: false },
   ]);
+});
+
+test("dueMonth is the month the invoice is paid, as the bank names it", () => {
+  const card = { diaFechamento: 29, diaVencimento: 5 };
+  expect(dueMonth("2026-10", card)).toBe("2026-11");
+  expect(dueMonth("2026-12", card)).toBe("2027-01");
+  expect(dueMonth("2026-10", { diaFechamento: 3, diaVencimento: 10 })).toBe("2026-10");
 });

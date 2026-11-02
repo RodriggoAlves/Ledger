@@ -99,7 +99,7 @@ describe.skipIf(!url)("importação de fatura (integração)", { timeout: 60_000
       const set = await importText(userId, SEPTEMBER, "set.pdf");
       await importText(userId, OCTOBER, "out.pdf");
       await expect(deleteInvoiceImport(db, userId, set)).rejects.toBeInstanceOf(CreditError);
-      await expect(deleteInvoiceImport(db, userId, set)).rejects.toThrow("Exclua primeiro a fatura de outubro de 2026");
+      await expect(deleteInvoiceImport(db, userId, set)).rejects.toThrow("Exclua primeiro a fatura de novembro de 2026");
     } finally {
       await cleanup([userId]);
     }
@@ -118,7 +118,7 @@ describe.skipIf(!url)("importação de fatura (integração)", { timeout: 60_000
         .from(installments)
         .where(and(eq(installments.userId, userId), isNotNull(installments.canceladaPorImportId)));
       expect(touched).toHaveLength(0);
-      expect((await listInvoiceImports(db, userId)).map((i) => i.mes)).toEqual(["2026-09"]);
+      expect((await listInvoiceImports(db, userId)).map((i) => i.mes)).toEqual(["2026-10"]);
     } finally {
       await cleanup([userId]);
     }
