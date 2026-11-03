@@ -1,4 +1,4 @@
-import { LogOut, Wallet } from "lucide-react";
+import { LogOut, Settings2, Wallet } from "lucide-react";
 import Link from "next/link";
 import { AppNav, BottomNav } from "@/components/app-nav";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -21,6 +21,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </Link>
           <AppNav />
           <form action={signOut} className="ml-auto flex items-center gap-2">
+            <Link
+              href="/configuracoes"
+              aria-label="Configurações"
+              title="Configurações"
+              className="glass grid size-9 place-items-center rounded-full text-muted-foreground ring-1 ring-border transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              <Settings2 className="size-4" aria-hidden />
+            </Link>
             <ThemeToggle />
             <Button variant="ghost" size="sm" type="submit" className="text-muted-foreground">
               <LogOut aria-hidden />

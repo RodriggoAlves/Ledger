@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ImportLink } from "@/components/import-link";
 import { MonthPicker } from "@/components/month-picker";
 import { RuleOfferProvider } from "@/components/rule-offer";
 import { SearchParamSelect } from "@/components/search-param-select";
@@ -46,7 +47,10 @@ export default async function TransacoesPage({ searchParams }: Props) {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold">Transações</h1>
-        <MonthPicker value={month} today={today} available={months} />
+        <div className="flex flex-wrap items-center gap-2">
+          <ImportLink />
+          <MonthPicker value={month} today={today} available={months} />
+        </div>
       </div>
       <div className="flex flex-col gap-2 sm:flex-row">
         <SearchParamSelect

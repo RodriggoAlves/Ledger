@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeftRight, CreditCard, LayoutDashboard, Settings2, Upload } from "lucide-react";
+import { ArrowLeftRight, BarChart3, CreditCard, LayoutDashboard, PiggyBank } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "cn";
@@ -9,8 +9,8 @@ const NAV = [
   { href: "/", label: "Visão geral", short: "Início", icon: LayoutDashboard },
   { href: "/transacoes", label: "Transações", short: "Transações", icon: ArrowLeftRight },
   { href: "/cartao", label: "Cartão", short: "Cartão", icon: CreditCard },
-  { href: "/importar", label: "Importar", short: "Importar", icon: Upload },
-  { href: "/configuracoes", label: "Configurações", short: "Ajustes", icon: Settings2 },
+  { href: "/relatorios", label: "Relatórios", short: "Relatórios", icon: BarChart3 },
+  { href: "/investimentos", label: "Investimentos", short: "Investir", icon: PiggyBank },
 ];
 
 function useIsActive() {

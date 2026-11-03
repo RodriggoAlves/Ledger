@@ -79,6 +79,11 @@
   --chart-3: #8fd9b0;
   --chart-4: #3b6b55;
   --chart-5: #a3b8ac;
+  /* Séries de gráfico (validadas para daltonismo): 1 azul, 2 laranja, 3 água. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-other: #8a9096;
   --radius: 0.875rem;
   --sidebar: #e6e8ea;
   --sidebar-foreground: #121416;
@@ -114,6 +119,10 @@
   --expense: #e0707d;
   --transfer: #94a3b8;
   --brand-from: #3f9d6c;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-other: #6b7177;
   --brand-to: #256b4b;
   --sidebar: #232629;
   --sidebar-foreground: #e6e9e7;

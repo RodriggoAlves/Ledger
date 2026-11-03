@@ -134,6 +134,8 @@ Fora do escopo: juros, rotativo, anuidade, estornos, limite.
 
 ## 6. Investimentos e simulador (Fase 5)
 
+> Atualizado na Fase 5: os investimentos são os cofrinhos do PicPay, criados automaticamente a partir do extrato. Detalhes, fórmula corrigida do fator diário e IR por lote em `docs/superpowers/specs/fase-5/2026-11-03-fase-5-relatorios-e-investimentos-design.md`.
+
 **CDI**: API SGS do Banco Central (série 4389, CDI anualizado):
 `https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json`
 Busca no máximo 1x por dia, cache em `cdi_rates`. Em falha, usa a última taxa salva. Usuário pode sobrescrever manualmente.
@@ -157,9 +159,11 @@ Fora do escopo: ações, FIIs, cripto, Tesouro com marcação a mercado.
 3. **Transações** — filtros por mês, categoria, tipo e origem (conta/cartão); total da lista; compras do cartão listadas por parcela; edição de categoria/tipo. *(Fase 4; a conversão em crédito saiu na Fase 3)*
 4. **Importar** — upload, prévia, confirmação; histórico de importações com exclusão.
 5. **Cartão e faturas** — importação da fatura PDF, faturas (pagas, fechadas, projetadas), detalhe, marcar como paga. *(Fases 2 e 3)*
-6. **Investimentos** — lista, projeções, fechamento do mês. *(Fase 5)*
-7. **Simulador** — projetor de rendimentos com aporte mensal. *(Fase 5)*
-8. **Configurações** — categorias e regras.
+6. **Relatórios** — período de 3, 6 ou 12 meses com abas: visão geral, categorias, cartão, lançamentos (com exportação CSV) e investimentos. *(Fase 5)*
+7. **Investimentos** — cofrinhos do extrato, CDI, projeções, saldo real × esperado; aba **Simulador**. *(Fase 5)*
+8. **Configurações** — categorias e regras; acessada pelo ícone no cabeçalho.
+
+Menu (Fase 5): Visão geral, Transações, Cartão, Relatórios, Investimentos. Importar virou botão no topo do Dashboard e de Transações.
 
 ## 8. Fases
 
@@ -167,7 +171,7 @@ Fora do escopo: ações, FIIs, cripto, Tesouro com marcação a mercado.
 - **Fase 2**: histórico e exclusão de importações (seção 4.1, primeiro plano), cartão, compras parceladas, conversão de transações, faturas.
 - **Fase 3**: importação da fatura PDF do PicPay; remove conversão de transações e compra manual. Spec própria: `docs/superpowers/specs/fase-3/2026-11-01-fase-3-fatura-picpay-design.md`.
 - **Fase 4**: fatura do cartão no Dashboard (card "Fatura do cartão") e compras do cartão em Transações, com filtro de origem e total. Spec própria: `docs/superpowers/specs/fase-4/2026-11-02-fase-4-cartao-no-dashboard-e-transacoes-design.md`.
-- **Fase 5**: CDI, investimentos, fechamento mensal, simulador.
+- **Fase 5**: relatórios e investimentos (cofrinhos do PicPay, CDI, fechamento com saldo real, simulador). Spec própria: `docs/superpowers/specs/fase-5/2026-11-03-fase-5-relatorios-e-investimentos-design.md`.
 
 O usuário escolhe qual fase implementar; cada fase recebe seu próprio plano de implementação.
 

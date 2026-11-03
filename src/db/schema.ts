@@ -160,6 +160,52 @@ export const installments = pgTable(
   (t) => [index().on(t.userId), index().on(t.invoiceId)],
 );
 
+/** Um cofrinho do PicPay, criado a partir do nome que aparece no extrato. */
+export const investments = pgTable(
+  "investments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    nome: text("nome").notNull(),
+    /** Centésimos de %: 10000 = 100% do CDI. */
+    percentualCdi: integer("percentual_cdi").notNull().default(10000),
+    criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.userId, t.nome)],
+);
+
+/** Saldo real informado pelo usuário em um dia (00:00 UTC, como as datas do extrato). */
+export const investmentSnapshots = pgTable(
+  "investment_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    investmentId: uuid("investment_id")
+      .notNull()
+      .references(() => investments.id, { onDelete: "cascade" }),
+    data: timestamp("data").notNull(),
+    saldo: integer("saldo").notNull(),
+    informadoEm: timestamp("informado_em", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique().on(t.investmentId, t.data), index().on(t.userId)],
+);
+
+/** Cache global do CDI do Banco Central (série 4389). */
+export const cdiRates = pgTable("cdi_rates", {
+  /** "AAAA-MM-DD" da taxa publicada. */
+  data: text("data").primaryKey(),
+  /** Centésimos de %: 1490 = 14,90% a.a. */
+  taxaAnual: integer("taxa_anual").notNull(),
+  buscadoEm: timestamp("buscado_em", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** CDI informado manualmente pelo usuário; vence o do Banco Central. */
+export const cdiOverrides = pgTable("cdi_overrides", {
+  userId: uuid("user_id").primaryKey(),
+  taxaAnual: integer("taxa_anual").notNull(),
+  atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Category = typeof categories.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type CreditCard = typeof creditCards.$inferSelect;

@@ -28,3 +28,17 @@ export function currentMonth(now: Date = new Date(), timeZone = "America/Sao_Pau
   const get = (type: string) => parts.find((p) => p.type === type)!.value;
   return `${get("year")}-${get("month")}`;
 }
+
+const CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** "2026-10" → "out/26", para eixos de gráfico. */
+export function shortMonth(month: MonthKey): string {
+  const [y, m] = month.split("-");
+  return `${CURTO[Number(m) - 1]}/${y.slice(2)}`;
+}
+
+/** Hoje no relógio do Brasil, como data à meia-noite UTC (a convenção das datas do extrato). */
+export function todayDate(now: Date = new Date(), timeZone = "America/Sao_Paulo"): Date {
+  const [y, m, d] = now.toLocaleDateString("en-CA", { timeZone }).split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+}

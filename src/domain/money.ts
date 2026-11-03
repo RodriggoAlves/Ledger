@@ -12,6 +12,7 @@ export function parseBRL(text: string): number {
   return sign === "-" ? -cents : cents;
 }
 
+/** `|| 0` troca -0 por 0, que o Intl formataria como "-R$ 0,00". */
 export function formatBRL(cents: number): string {
-  return BRL.format(cents / 100).replace(/\u2212/g, "-");
+  return BRL.format((cents || 0) / 100).replace(/\u2212/g, "-");
 }
