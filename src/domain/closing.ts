@@ -45,18 +45,26 @@ export type ClosingSteps = {
   entradas: AccountEntry[];
   /** Passo 4: gastos e estornos sem categoria, da conta e do cartão (inclusive Pix seus ainda como gasto). */
   gastos: MonthEntry[];
+  /** Passo 3, para revisão: todas as receitas do extrato (fora as do titular), com ou sem categoria. */
+  todasEntradas: AccountEntry[];
+  /** Passo 4, para revisão: todos os gastos e estornos do mês, com ou sem categoria. */
+  todosGastos: MonthEntry[];
 };
 
 const doTitular = (e: MonthEntry, nome: string | null): e is AccountEntry => e.origem === "CONTA" && isTitular(e.descricao, nome);
 
 export function closingSteps(entries: MonthEntry[], nome: string | null): ClosingSteps {
+  const todasEntradas = entries.filter(
+    (e): e is AccountEntry => e.origem === "CONTA" && e.tipo === "RECEITA" && !doTitular(e, nome),
+  );
+  const todosGastos = entries.filter((e) => countsAsExpense(e.tipo));
   return {
     titular: entries.filter((e) => doTitular(e, nome)),
-    entradas: entries.filter(
-      (e): e is AccountEntry => e.origem === "CONTA" && e.tipo === "RECEITA" && !e.categoryId && !doTitular(e, nome),
-    ),
+    entradas: todasEntradas.filter((e) => !e.categoryId),
     // Inclui Pix enviado a você mesmo que segue como gasto: ou vira transferência (passo 2) ou ganha categoria.
-    gastos: entries.filter((e) => countsAsExpense(e.tipo) && !e.categoryId),
+    gastos: todosGastos.filter((e) => !e.categoryId),
+    todasEntradas,
+    todosGastos,
   };
 }
 

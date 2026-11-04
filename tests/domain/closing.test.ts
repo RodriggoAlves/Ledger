@@ -88,6 +88,14 @@ describe("closingSteps / pendingCount", () => {
     expect(steps.gastos).toEqual([enviado, gasto, doCartao]);
   });
 
+  test("lista todas as entradas e todos os gastos do mês, categorizados ou não, para revisão", () => {
+    const salario = conta(500000, { categoryId: "sal" });
+    const estorno = conta(300, { tipo: "ESTORNO", categoryId: "alim" });
+    const s = closingSteps([...entries, salario, estorno], nome);
+    expect(s.todasEntradas).toEqual([entrada, salario]);
+    expect(s.todosGastos).toEqual([enviado, gasto, doCartao, categorizado, estorno]);
+  });
+
   test("Pix enviado a você mesmo que segue gasto sem categoria aparece nos gastos e conta como pendência", () => {
     expect(steps.gastos).toContain(enviado);
   });
