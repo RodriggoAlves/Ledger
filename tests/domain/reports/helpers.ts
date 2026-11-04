@@ -36,7 +36,7 @@ export function cartao(
     data: new Date(`${o.data ?? "2026-10-10"}T12:00:00Z`),
     descricao: o.descricao ?? "Compra",
     valor,
-    tipo: "GASTO",
+    tipo: valor > 0 ? "ESTORNO" : "GASTO",
     categoryId: o.categoryId ?? null,
     parcela: o.parcela ? { numero: o.parcela[0], total: o.parcela[1] } : null,
     estorno: valor > 0,

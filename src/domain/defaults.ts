@@ -1,7 +1,7 @@
-import type { TxType } from "./picpay-parser";
+import type { CategoryTipo } from "./tx-type";
 
 // Cores de gasto: paleta categórica validada para daltonismo (ordem fixa); Outros em cinza neutro.
-export const DEFAULT_CATEGORIES: { nome: string; cor: string; tipo: TxType }[] = [
+export const DEFAULT_CATEGORIES: { nome: string; cor: string; tipo: CategoryTipo }[] = [
   { nome: "Alimentação", cor: "#eb6834", tipo: "GASTO" },
   { nome: "Transporte", cor: "#2a78d6", tipo: "GASTO" },
   { nome: "Telefone", cor: "#6250d6", tipo: "GASTO" },
@@ -14,9 +14,9 @@ export const DEFAULT_CATEGORIES: { nome: string; cor: string; tipo: TxType }[] =
   { nome: "Salário", cor: "#16a34a", tipo: "RECEITA" },
   { nome: "Freelance / Serviços", cor: "#0d9488", tipo: "RECEITA" },
   { nome: "Reembolsos", cor: "#65a30d", tipo: "RECEITA" },
-  { nome: "Transferência própria", cor: "#059669", tipo: "RECEITA" },
   { nome: "Outras receitas", cor: "#4d7c0f", tipo: "RECEITA" },
   { nome: "Movimentação", cor: "#94a3b8", tipo: "MOVIMENTACAO" },
+  { nome: "Transferência própria", cor: "#059669", tipo: "MOVIMENTACAO" },
 ];
 
 export const DEFAULT_RULES: { padrao: string; categoria: string }[] = [

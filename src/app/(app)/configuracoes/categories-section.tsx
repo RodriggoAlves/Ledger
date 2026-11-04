@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { TxType } from "@/domain/picpay-parser";
-import { TIPO_LABEL } from "@/domain/tx-type";
+import { CATEGORY_TIPOS, TIPO_LABEL } from "@/domain/tx-type";
 import { deleteCategory, upsertCategory } from "./actions";
 
 type Category = { id: string; nome: string; cor: string; tipo: TxType };
@@ -20,7 +20,8 @@ const TABS: { tipo: TxType; label: string; vazio: string }[] = [
   { tipo: "MOVIMENTACAO", label: "Movimentação", vazio: "Nenhuma categoria de movimentação." },
 ];
 const newDraft = (tipo: TxType): Draft => ({ nome: "", cor: "#2a78d6", tipo });
-const tipoItems = Object.entries(TIPO_LABEL).map(([value, label]) => ({ value, label }));
+// Estorno não tem categorias próprias: usa as de gasto.
+const tipoItems = CATEGORY_TIPOS.map((value) => ({ value, label: TIPO_LABEL[value] }));
 
 /** Nova categoria usa o tipo da aba; o seletor de tipo só aparece ao editar (para mover de aba). */
 function CategoryForm({ initial, onDone }: { initial: Draft; onDone?: () => void }) {

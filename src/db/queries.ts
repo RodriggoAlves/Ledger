@@ -11,14 +11,14 @@ export async function getCategories(userId: string) {
 
 export async function getRules(userId: string): Promise<Rule[]> {
   return db
-    .select({ padrao: categoryRules.padrao, categoryId: categoryRules.categoryId })
+    .select({ padrao: categoryRules.padrao, categoryId: categoryRules.categoryId, tipo: categoryRules.tipo })
     .from(categoryRules)
     .where(eq(categoryRules.userId, userId));
 }
 
 export async function getRulesWithIds(userId: string) {
   return db
-    .select({ id: categoryRules.id, padrao: categoryRules.padrao, categoryId: categoryRules.categoryId })
+    .select({ id: categoryRules.id, padrao: categoryRules.padrao, categoryId: categoryRules.categoryId, tipo: categoryRules.tipo })
     .from(categoryRules)
     .where(eq(categoryRules.userId, userId))
     .orderBy(categoryRules.padrao);

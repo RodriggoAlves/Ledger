@@ -44,3 +44,17 @@ describe("topMerchants", () => {
     expect(r.map((m) => m.nome)).toEqual(["B"]);
   });
 });
+
+describe("estornos nos gastos", () => {
+  const gasto = conta(-8000, { descricao: "Distribuidora" });
+  const estorno = conta(5000, { tipo: "ESTORNO", descricao: "Distribuidora" });
+  const meses = [{ mes: "2026-10" as const, entries: [gasto, estorno] }];
+
+  test("estorno não aparece entre os maiores gastos", () => {
+    expect(topExpenses(meses, 5)).toEqual([gasto]);
+  });
+
+  test("estorno abate do estabelecimento", () => {
+    expect(topMerchants(meses, 5)).toEqual([{ nome: "Distribuidora", total: 3000, vezes: 2 }]);
+  });
+});

@@ -101,3 +101,18 @@ describe("summarizeSpending", () => {
     expect(-entriesTotal(filterEntries(entries, { origem: "CARTAO" }))).toBe(319900 - 319900 - 319900 + 2399 + 23088);
   });
 });
+
+describe("estornos", () => {
+  test("estorno abate da categoria", () => {
+    const r = summarizeSpending([tx(-8000, "alim"), tx(5000, "alim", "ESTORNO")], cats);
+    expect(r.categorias.map((c) => [c.categoryId, c.total])).toEqual([["alim", 3000]]);
+    expect(r.total).toBe(3000);
+  });
+
+  test("estorno maior que os gastos vira crédito, não fatia", () => {
+    const r = summarizeSpending([tx(-1000, "alim"), tx(3000, "alim", "ESTORNO"), tx(-500, "transp")], cats);
+    expect(r.categorias.map((c) => [c.categoryId, c.total])).toEqual([["transp", 500]]);
+    expect(r.creditos).toBe(-2000);
+    expect(r.total).toBe(-1500);
+  });
+});

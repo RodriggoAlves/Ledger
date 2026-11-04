@@ -1,4 +1,4 @@
-import { matchCategory, type Rule } from "./categorization";
+import { matchPurchaseCategory, type Rule } from "./categorization";
 import { addMonths, dueMonth } from "./invoice";
 import type { InvoiceLine } from "./invoice-lines";
 import { formatMonth, monthKey, type MonthKey } from "./month";
@@ -132,7 +132,7 @@ export function buildInvoiceImportPlan(
       exact && (!line.parcela || openInstallment(exact, k)) ? exact : line.parcela ? (looseMatch(line.chave, k) ?? exact) : exact;
     if (!existing) {
       const parcelas = line.parcela?.total ?? 1;
-      const categoryId = matchCategory(line.descricao, rules);
+      const categoryId = matchPurchaseCategory(line.descricao, rules);
       if (!categoryId) plan.semCategoria++;
       plan.novas.push({
         chave: line.chave,

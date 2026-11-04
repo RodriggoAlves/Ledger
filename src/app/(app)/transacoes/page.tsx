@@ -11,7 +11,7 @@ import { categoryFilterOptions } from "@/domain/category-options";
 import { entriesTotal, entryLabels, filterEntries, parseOrigin } from "@/domain/entries";
 import { formatBRL } from "@/domain/money";
 import { currentMonth, parseMonth } from "@/domain/month";
-import { parseTipo, TIPO_LABEL } from "@/domain/tx-type";
+import { parseTipo, tipoFilterOptions } from "@/domain/tx-type";
 import { requireUserId } from "@/lib/auth";
 import { TransactionRow } from "./transaction-row";
 
@@ -66,7 +66,7 @@ export default async function TransacoesPage({ searchParams }: Props) {
           name="tipo"
           value={tipo}
           allLabel="Todos os tipos"
-          options={Object.entries(TIPO_LABEL).map(([value, label]) => ({ value, label }))}
+          options={tipoFilterOptions()}
         />
         <SearchParamSelect
           name="origem"
@@ -113,6 +113,7 @@ export default async function TransacoesPage({ searchParams }: Props) {
                               data: e.data.toISOString(),
                               descricao: e.descricao,
                               valor: e.valor,
+                              tipo: e.tipo,
                               categoryId: e.categoryId,
                               labels: entryLabels(e),
                             }

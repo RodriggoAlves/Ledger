@@ -62,3 +62,12 @@ test("other payments keep the sign rule", () => {
   const csv = `${CSV_HEADER}\n2026-10-05,11:16,"Pagamento realizado","CONTA DE LUZ","−R$ 90,00","Com saldo"\n`;
   expect(parsePicPayCsv(csv).rows[0].tipo).toBe("GASTO");
 });
+
+test("estorno e Pix devolvido viram ESTORNO", () => {
+  const csv = [
+    CSV_HEADER,
+    '2026-01-10,10:00,"Compra estornada","LOJA X","+R$ 20,00",',
+    '2026-01-11,10:00,"Pix devolvido","Samuel","+R$ 35,00",',
+  ].join("\n");
+  expect(parsePicPayCsv(csv).rows.map((r) => r.tipo)).toEqual(["ESTORNO", "ESTORNO"]);
+});

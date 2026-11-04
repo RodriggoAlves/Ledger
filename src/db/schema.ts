@@ -10,7 +10,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-export const txType = pgEnum("tx_type", ["GASTO", "RECEITA", "MOVIMENTACAO"]);
+export const txType = pgEnum("tx_type", ["GASTO", "RECEITA", "MOVIMENTACAO", "ESTORNO"]);
 export const txOrigin = pgEnum("tx_origin", ["CSV", "MANUAL"]);
 export const purchaseType = pgEnum("purchase_type", ["COMPRA", "ESTORNO"]);
 
@@ -33,6 +33,8 @@ export const categoryRules = pgTable("category_rules", {
   categoryId: uuid("category_id")
     .notNull()
     .references(() => categories.id, { onDelete: "cascade" }),
+  /** Tipo gravado no lançamento que casa; ESTORNO usa categoria de gasto. Define o sentido (ver domain/categorization.ts). */
+  tipo: txType("tipo").notNull(),
 });
 
 export const imports = pgTable("imports", {

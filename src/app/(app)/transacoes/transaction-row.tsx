@@ -15,6 +15,7 @@ const NONE = "__none__";
 
 const VALOR_COLOR: Record<TxType, string> = {
   GASTO: "text-expense",
+  ESTORNO: "text-income",
   RECEITA: "text-income",
   MOVIMENTACAO: "text-transfer",
 };
@@ -38,6 +39,7 @@ export type RowData =
       data: string;
       descricao: string;
       valor: number;
+      tipo: "GASTO" | "ESTORNO";
       categoryId: string | null;
       labels: string[];
     };
@@ -73,7 +75,7 @@ function CardEntryRow({ row, categories }: { row: Extract<RowData, { origem: "CA
         {new Date(row.data).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
       </TableCell>
       <Description descricao={row.descricao} labels={row.labels} />
-      <TableCell className="text-muted-foreground">{TIPO_LABEL.GASTO}</TableCell>
+      <TableCell className="text-muted-foreground">{TIPO_LABEL[row.tipo]}</TableCell>
       <TableCell>
         <PurchaseCategory
           purchaseId={row.purchaseId}

@@ -1,4 +1,5 @@
 import type { TxType } from "./picpay-parser";
+import { countsAsExpense } from "./tx-type";
 
 export type CategoryTotal = {
   categoryId: string | null;
@@ -14,11 +15,11 @@ type SummaryCategory = { id: string; nome: string; cor: string };
 
 const UNCATEGORIZED = { nome: "Sem categoria", cor: "#a1a1aa" };
 
-/** Gasto líquido por categoria (positivo = gasto); ignora receitas e movimentações. */
+/** Gasto líquido por categoria (positivo = gasto; estorno abate); ignora receitas e movimentações. */
 function netByCategory(txs: SummaryTx[]): Map<string | null, number> {
   const totals = new Map<string | null, number>();
   for (const t of txs) {
-    if (t.tipo !== "GASTO") continue;
+    if (!countsAsExpense(t.tipo)) continue;
     totals.set(t.categoryId, (totals.get(t.categoryId) ?? 0) - t.valor);
   }
   return totals;

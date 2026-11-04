@@ -7,7 +7,7 @@ import { CreditError, markInvoicePaid, setPurchaseCategory } from "@/db/credit";
 import { applyInvoiceImport, deleteInvoiceImport, loadCardState } from "@/db/invoice-import";
 import { getCategories, getRules } from "@/db/queries";
 import { categoryRules, creditPurchases } from "@/db/schema";
-import { matchCategory } from "@/domain/categorization";
+import { matchPurchaseCategory } from "@/domain/categorization";
 import { isUuid } from "@/domain/guards";
 import { buildInvoiceImportPlan, type InvoiceImportPlan } from "@/domain/invoice-import-plan";
 import { resolveLines } from "@/domain/invoice-lines";
@@ -119,13 +119,13 @@ export async function createRuleFromPurchaseAction(
     .where(and(eq(creditPurchases.id, purchaseId), eq(creditPurchases.userId, userId)));
   if (!purchase) return { error: "Compra não encontrada" };
 
-  const rule = { padrao: purchase.descricao, categoryId };
+  const rule = { padrao: purchase.descricao, categoryId, tipo: "GASTO" as const };
   await db.insert(categoryRules).values({ userId, ...rule });
   const uncategorized = await db
     .select({ id: creditPurchases.id, descricao: creditPurchases.descricao })
     .from(creditPurchases)
     .where(and(eq(creditPurchases.userId, userId), isNull(creditPurchases.categoryId)));
-  const ids = uncategorized.filter((p) => matchCategory(p.descricao, [rule])).map((p) => p.id);
+  const ids = uncategorized.filter((p) => matchPurchaseCategory(p.descricao, [rule])).map((p) => p.id);
   if (ids.length) {
     await db
       .update(creditPurchases)

@@ -64,6 +64,20 @@
       "when": 1793736358919,
       "tag": "0008_investimentos_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793758946097,
+      "tag": "0009_estorno_e_regras_com_tipo",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793759128962,
+      "tag": "0010_estornos_e_transferencia_propria",
+      "breakpoints": true
     }
   ]
 }

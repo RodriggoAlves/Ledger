@@ -10,9 +10,16 @@ test("income categories", () => {
     "Salário",
     "Freelance / Serviços",
     "Reembolsos",
-    "Transferência própria",
     "Outras receitas",
   ]);
+});
+
+test("transferência própria é movimentação, não receita", () => {
+  expect(DEFAULT_CATEGORIES.find((c) => c.nome === "Transferência própria")?.tipo).toBe("MOVIMENTACAO");
+});
+
+test("nenhuma categoria padrão é do tipo estorno", () => {
+  expect(DEFAULT_CATEGORIES.some((c) => (c.tipo as string) === "ESTORNO")).toBe(false);
 });
 
 test("unique names", () => {

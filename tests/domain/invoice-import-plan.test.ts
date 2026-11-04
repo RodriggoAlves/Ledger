@@ -6,6 +6,7 @@ import {
   type CardState,
   type InvoiceImportPlan,
 } from "@/domain/invoice-import-plan";
+import type { Rule } from "@/domain/categorization";
 import { resolveLines } from "@/domain/invoice-lines";
 import { parsePicPayInvoice } from "@/domain/picpay-invoice-parser";
 
@@ -14,7 +15,7 @@ const EMPTY: CardState = { importedMonths: [], purchases: [] };
 
 const september = parsePicPayInvoice(readFileSync("tests/fixtures/picpay-fatura-092026.txt", "utf8").split(/\r?\n/));
 
-function plan(lines: string[] | typeof september, state: CardState = EMPTY, rules = [] as { padrao: string; categoryId: string }[]) {
+function plan(lines: string[] | typeof september, state: CardState = EMPTY, rules = [] as Rule[]) {
   const parsed = Array.isArray(lines) ? parsePicPayInvoice(lines) : lines;
   return buildInvoiceImportPlan(parsed, resolveLines(parsed), state, rules);
 }
@@ -148,7 +149,7 @@ test("refuses an already imported month, named by its due month like the bank", 
 });
 
 test("applies category rules on the description without PARC", () => {
-  const p = plan(september, EMPTY, [{ padrao: "AMAZON", categoryId: "c1" }]);
+  const p = plan(september, EMPTY, [{ padrao: "AMAZON", categoryId: "c1", tipo: "GASTO" }]);
   expect(p.novas.find((n) => n.descricao === "AMAZON BR")!.categoryId).toBe("c1");
   expect(p.semCategoria).toBe(p.novas.filter((n) => n.categoryId === null).length);
   expect(p.semCategoria).toBeGreaterThan(0);

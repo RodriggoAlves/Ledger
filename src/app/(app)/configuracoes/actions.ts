@@ -4,10 +4,11 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db/client";
 import { categories, categoryRules } from "@/db/schema";
+import { ruleInputError, ruleTipoAfterCategoryMove } from "@/domain/categorization";
+import { isUuid } from "@/domain/guards";
 import type { TxType } from "@/domain/picpay-parser";
+import { CATEGORY_TIPOS, type CategoryTipo } from "@/domain/tx-type";
 import { requireUserId } from "@/lib/auth";
-
-const TIPOS: TxType[] = ["GASTO", "RECEITA", "MOVIMENTACAO"];
 
 function done() {
   revalidatePath("/", "layout");
@@ -24,7 +25,7 @@ export async function upsertCategory(data: {
   const nome = data.nome.trim();
   if (!nome) return { error: "Informe o nome" };
   if (!/^#[0-9a-f]{6}$/i.test(data.cor)) return { error: "Cor inválida" };
-  if (!TIPOS.includes(data.tipo)) return { error: "Tipo inválido" };
+  if (!(CATEGORY_TIPOS as TxType[]).includes(data.tipo)) return { error: "Tipo inválido" };
 
   const [dup] = await db
     .select({ id: categories.id })
@@ -32,12 +33,26 @@ export async function upsertCategory(data: {
     .where(and(eq(categories.userId, userId), eq(categories.nome, nome)));
   if (dup && dup.id !== data.id) return { error: "Já existe uma categoria com esse nome" };
 
-  const values = { nome, cor: data.cor, tipo: data.tipo };
+  const values = { nome, cor: data.cor, tipo: data.tipo as CategoryTipo };
   if (data.id) {
-    await db
-      .update(categories)
-      .set(values)
-      .where(and(eq(categories.id, data.id), eq(categories.userId, userId)));
+    const id = data.id;
+    await db.transaction(async (tx) => {
+      const [cat] = await tx
+        .update(categories)
+        .set(values)
+        .where(and(eq(categories.id, id), eq(categories.userId, userId)))
+        .returning({ id: categories.id });
+      if (!cat) return;
+      // A regra precisa continuar combinando com a categoria (ex.: receita → gasto deixa de ser receita).
+      const rules = await tx
+        .select({ id: categoryRules.id, tipo: categoryRules.tipo })
+        .from(categoryRules)
+        .where(and(eq(categoryRules.categoryId, id), eq(categoryRules.userId, userId)));
+      for (const r of rules) {
+        const tipo = ruleTipoAfterCategoryMove(r.tipo, values.tipo);
+        if (tipo !== r.tipo) await tx.update(categoryRules).set({ tipo }).where(eq(categoryRules.id, r.id));
+      }
+    });
   } else {
     await db.insert(categories).values({ userId, ...values });
   }
@@ -55,24 +70,29 @@ export async function upsertRule(data: {
   id?: string;
   padrao: string;
   categoryId: string;
+  tipo: TxType;
 }): Promise<{ error?: string }> {
   const userId = await requireUserId();
   const padrao = data.padrao.trim();
   if (!padrao) return { error: "Informe o texto da regra" };
+  // Trocar o tipo no formulário limpa a categoria: "" não pode chegar à consulta (coluna uuid).
+  if (typeof data.categoryId !== "string" || !isUuid(data.categoryId)) return { error: "Escolha uma categoria" };
 
   const [cat] = await db
-    .select({ id: categories.id })
+    .select({ id: categories.id, tipo: categories.tipo })
     .from(categories)
     .where(and(eq(categories.id, data.categoryId), eq(categories.userId, userId)));
-  if (!cat) return { error: "Escolha uma categoria" };
+  const error = ruleInputError(data.tipo, cat);
+  if (error) return { error };
 
+  const values = { padrao, categoryId: data.categoryId, tipo: data.tipo };
   if (data.id) {
     await db
       .update(categoryRules)
-      .set({ padrao, categoryId: data.categoryId })
+      .set(values)
       .where(and(eq(categoryRules.id, data.id), eq(categoryRules.userId, userId)));
   } else {
-    await db.insert(categoryRules).values({ userId, padrao, categoryId: data.categoryId });
+    await db.insert(categoryRules).values({ userId, ...values });
   }
   return done();
 }

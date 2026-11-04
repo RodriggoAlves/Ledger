@@ -107,7 +107,7 @@ describe.skipIf(!url)("importações (integração)", { timeout: 30_000 }, () =>
     const userId = randomUUID();
     try {
       const [cat] = await db.insert(categories).values({ userId, nome: "Teste", cor: "#000000", tipo: "GASTO" }).returning();
-      await db.insert(categoryRules).values({ userId, padrao: "TESTE", categoryId: cat.id });
+      await db.insert(categoryRules).values({ userId, padrao: "TESTE", categoryId: cat.id, tipo: "GASTO" });
       const a = await seedImport(db, userId, "a.csv", [{ dataHora: new Date("2026-09-01T10:00:00Z"), hash: "a1" }]);
 
       await deleteImport(db, userId, a);

@@ -1,7 +1,8 @@
 import type { MonthEntry } from "../entries";
+import { countsAsExpense } from "../tx-type";
 import type { MonthEntries } from "./period";
 
-const gastos = (meses: MonthEntries) => meses.flatMap((m) => m.entries).filter((e) => e.tipo === "GASTO");
+const gastos = (meses: MonthEntries) => meses.flatMap((m) => m.entries).filter((e) => countsAsExpense(e.tipo));
 
 /** Os `n` maiores gastos do período (parcelas do cartão contam pelo valor da parcela). */
 export function topExpenses(meses: MonthEntries, n: number): MonthEntry[] {

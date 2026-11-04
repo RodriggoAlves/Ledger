@@ -31,7 +31,10 @@ export async function updateTransaction(
   revalidatePath("/", "layout");
 }
 
-/** Cria regra "descrição → categoria" e aplica nas transações sem categoria do mesmo tipo que casam. */
+/**
+ * Cria regra "descrição → tipo + categoria" com o tipo atual da transação e aplica nas transações
+ * sem categoria que casam com ela no sentido certo (gravando categoria e tipo).
+ */
 export async function createRuleFromTransaction(
   id: string,
   categoryId: string,
@@ -44,18 +47,18 @@ export async function createRuleFromTransaction(
     .where(and(eq(transactions.id, id), eq(transactions.userId, userId)));
   if (!tx) throw new Error("Transação não encontrada");
 
-  const rule = { padrao: tx.descricao, categoryId };
+  const rule = { padrao: tx.descricao, categoryId, tipo: tx.tipo };
   await db.insert(categoryRules).values({ userId, ...rule });
 
   const uncategorized = await db
-    .select({ id: transactions.id, descricao: transactions.descricao, tipo: transactions.tipo })
+    .select({ id: transactions.id, descricao: transactions.descricao, valor: transactions.valor, tipo: transactions.tipo })
     .from(transactions)
     .where(and(eq(transactions.userId, userId), isNull(transactions.categoryId)));
-  const ids = newRuleTargets(uncategorized, rule, tx.tipo);
+  const ids = newRuleTargets(uncategorized, rule);
   if (ids.length) {
     await db
       .update(transactions)
-      .set({ categoryId })
+      .set({ categoryId, tipo: rule.tipo })
       .where(and(eq(transactions.userId, userId), inArray(transactions.id, ids)));
   }
   revalidatePath("/", "layout");

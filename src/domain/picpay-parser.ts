@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import Papa from "papaparse";
 import { parseBRL } from "./money";
 
-export type TxType = "GASTO" | "RECEITA" | "MOVIMENTACAO";
+export type TxType = "GASTO" | "ESTORNO" | "RECEITA" | "MOVIMENTACAO";
 
 export type ParsedRow = {
   dataHora: Date;
@@ -33,6 +33,8 @@ const TIPOS: Record<string, TxType> = {
   "pix recebido": "RECEITA",
   "pix enviado": "GASTO",
   "compra realizada": "GASTO",
+  "compra estornada": "ESTORNO",
+  "pix devolvido": "ESTORNO",
 };
 
 function classify(tipoOriginal: string, descricao: string, valor: number): TxType {

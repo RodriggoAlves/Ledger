@@ -1,4 +1,4 @@
-import { matchCategory, type Rule } from "./categorization";
+import { matchRule, type Rule } from "./categorization";
 import type { ParsedRow, ParseResult } from "./picpay-parser";
 
 export type PlannedRow = ParsedRow & { categoryId: string | null };
@@ -24,11 +24,10 @@ export function buildImportPlan(
       duplicadas++;
       continue;
     }
-    // Sem regra, só movimentação tem categoria automática; gasto e receita ficam para o usuário.
-    const categoryId =
-      matchCategory(row.descricao, rules) ??
-      (row.tipo === "MOVIMENTACAO" ? categoriaPorTipo.MOVIMENTACAO : null);
-    novas.push({ ...row, categoryId });
+    // A regra define tipo e categoria. Sem regra, só movimentação tem categoria automática.
+    const rule = matchRule(row, rules);
+    const categoryId = rule?.categoryId ?? (row.tipo === "MOVIMENTACAO" ? categoriaPorTipo.MOVIMENTACAO : null);
+    novas.push({ ...row, tipo: rule?.tipo ?? row.tipo, categoryId });
   }
 
   return {

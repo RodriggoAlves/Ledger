@@ -14,6 +14,7 @@ import { formatBRL } from "@/domain/money";
 import { currentMonth, formatMonth, parseMonth } from "@/domain/month";
 import { summarizeSpending } from "@/domain/summary";
 import { transactionsHref } from "@/domain/transactions-link";
+import { countsAsExpense } from "@/domain/tx-type";
 import { requireUserId } from "@/lib/auth";
 import { CategoryDonut } from "./category-donut";
 
@@ -61,7 +62,7 @@ export default async function DashboardPage({ searchParams }: Props) {
   // Cada card abre em Transações a lista que soma o seu valor; sem nada a listar, não é clicável.
   const gastosHref = transactionsHref(month, { tipo: "GASTO" });
   const entradasLink = entradas.length ? transactionsHref(month, { tipo: "RECEITA" }) : null;
-  const gastosLink = entries.some((e) => e.tipo === "GASTO") ? gastosHref : null;
+  const gastosLink = entries.some((e) => countsAsExpense(e.tipo)) ? gastosHref : null;
   const topLink = top ? transactionsHref(month, { categoryId: top.categoryId ?? "none", tipo: "GASTO" }) : null;
 
   return (

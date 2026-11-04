@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { summarizeSpending } from "@/domain/summary";
 import {
   buildMonthEntries,
   entriesTotal,
@@ -73,7 +74,7 @@ describe("buildMonthEntries", () => {
       [],
       [cartao({ descricao: "CREDITO PULA COMPRA", valor: -319900, numero: 1, parcelas: 1, tipo: "ESTORNO", categoryId: null })],
     );
-    expect(e).toMatchObject({ valor: 319900, parcela: null, estorno: true, tipo: "GASTO" });
+    expect(e).toMatchObject({ valor: 319900, parcela: null, estorno: true, tipo: "ESTORNO" });
   });
 
   test("cancelled installments are left out", () => {
@@ -165,4 +166,28 @@ test("parseOrigin accepts only CONTA and CARTAO", () => {
   expect(parseOrigin("CARTAO")).toBe("CARTAO");
   expect(parseOrigin("xyz")).toBeUndefined();
   expect(parseOrigin(undefined)).toBeUndefined();
+});
+
+describe("filtro de gastos com estornos", () => {
+  const entries = buildMonthEntries(
+    [
+      conta({ id: "g", valor: -8000, categoryId: "alim" }),
+      conta({ id: "e", tipo: "ESTORNO", valor: 5000, categoryId: "alim", formaPagamento: null }),
+      conta({ id: "r", tipo: "RECEITA", valor: 10000, categoryId: null, formaPagamento: null }),
+      conta({ id: "m", tipo: "MOVIMENTACAO", valor: -2000, categoryId: null, formaPagamento: null }),
+    ],
+    [],
+  );
+
+  test("filtro GASTO inclui estornos e soma igual ao resumo", () => {
+    const gastos = filterEntries(entries, { tipo: "GASTO" });
+    expect(gastos.map((e) => e.id).sort()).toEqual(["e", "g"]);
+    const resumo = summarizeSpending(entries, [{ id: "alim", nome: "Alimentação", cor: "#f00" }]);
+    expect(-entriesTotal(gastos)).toBe(resumo.total);
+    expect(resumo.total).toBe(3000);
+  });
+
+  test("filtro ESTORNO traz só estornos", () => {
+    expect(filterEntries(entries, { tipo: "ESTORNO" }).map((e) => e.id)).toEqual(["e"]);
+  });
 });

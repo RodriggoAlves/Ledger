@@ -21,10 +21,13 @@ export async function ensureUserDefaults(db: Db, userId: string): Promise<void> 
     const cats = await tx
       .insert(categories)
       .values(DEFAULT_CATEGORIES.map((c) => ({ ...c, userId })))
-      .returning({ id: categories.id, nome: categories.nome });
-    const idByName = new Map(cats.map((c) => [c.nome, c.id]));
+      .returning({ id: categories.id, nome: categories.nome, tipo: categories.tipo });
+    const byName = new Map(cats.map((c) => [c.nome, c]));
     await tx.insert(categoryRules).values(
-      DEFAULT_RULES.map((r) => ({ userId, padrao: r.padrao, categoryId: idByName.get(r.categoria)! })),
+      DEFAULT_RULES.map((r) => {
+        const cat = byName.get(r.categoria)!;
+        return { userId, padrao: r.padrao, categoryId: cat.id, tipo: cat.tipo };
+      }),
     );
   });
 }

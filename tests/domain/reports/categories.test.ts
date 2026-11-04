@@ -47,3 +47,15 @@ describe("categoriesInPeriod", () => {
     expect(r).toEqual([expect.objectContaining({ nome: "Salário", total: 5000 })]);
   });
 });
+
+describe("estornos por categoria", () => {
+  const meses = [{ mes: "2026-10" as const, entries: [conta(-8000, { categoryId: "alim" }), conta(5000, { tipo: "ESTORNO", categoryId: "alim" })] }];
+
+  test("estorno abate da categoria de gasto", () => {
+    expect(categoriesInPeriod(meses, cats, "GASTO").map((c) => [c.categoryId, c.total])).toEqual([["alim", 3000]]);
+  });
+
+  test("estorno não aparece nas receitas", () => {
+    expect(categoriesInPeriod(meses, cats, "RECEITA")).toEqual([]);
+  });
+});

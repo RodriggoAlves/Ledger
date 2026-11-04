@@ -46,3 +46,17 @@ describe("categoryFilterOptions", () => {
     expect(filterIds("RECEITA", "none")).toEqual(["b"]);
   });
 });
+
+describe("estorno", () => {
+  test("estorno lista as categorias de gasto", () => {
+    expect(ids("ESTORNO", null)).toEqual(ids("GASTO", null));
+  });
+
+  test("estorno mantém a categoria de receita atual (Review Focus 5)", () => {
+    expect(ids("ESTORNO", "b")).toEqual(["a", "b", "c"]);
+  });
+
+  test("filtro com tipo estorno mostra categorias de gasto", () => {
+    expect(categoryFilterOptions(cats, "ESTORNO", undefined).map((c) => c.id)).toEqual(["a", "c"]);
+  });
+});

@@ -1,5 +1,6 @@
 import type { MonthKey } from "../month";
 import { summarizeSpending } from "../summary";
+import { countsAsExpense } from "../tx-type";
 import type { MonthEntries } from "./period";
 
 type Cat = { id: string; nome: string; cor: string };
@@ -42,7 +43,7 @@ export function monthlyEvolution(
 export function originSplit(meses: MonthEntries): { mes: MonthKey; conta: number; cartao: number }[] {
   return meses.map(({ mes, entries }) => {
     const total = (origem: "CONTA" | "CARTAO") =>
-      entries.filter((e) => e.tipo === "GASTO" && e.origem === origem).reduce((s, e) => s - e.valor, 0);
+      entries.filter((e) => countsAsExpense(e.tipo) && e.origem === origem).reduce((s, e) => s - e.valor, 0);
     return { mes, conta: total("CONTA"), cartao: total("CARTAO") };
   });
 }

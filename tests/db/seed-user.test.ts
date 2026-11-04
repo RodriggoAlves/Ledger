@@ -19,7 +19,9 @@ describe.skipIf(!url)("ensureUserDefaults (integração)", { timeout: 30_000 }, 
       const cats = await db.select().from(categories).where(eq(categories.userId, userId));
       const rules = await db.select().from(categoryRules).where(eq(categoryRules.userId, userId));
       expect(cats).toHaveLength(15);
+      expect(cats.find((c) => c.nome === "Transferência própria")?.tipo).toBe("MOVIMENTACAO");
       expect(rules).toHaveLength(10);
+      expect(new Set(rules.map((r) => r.tipo))).toEqual(new Set(["GASTO"]));
     } finally {
       await db.delete(categories).where(eq(categories.userId, userId));
     }

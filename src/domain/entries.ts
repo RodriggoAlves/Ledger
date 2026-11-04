@@ -1,4 +1,5 @@
 import type { TxType } from "./picpay-parser";
+import { countsAsExpense } from "./tx-type";
 
 /** De onde vem o lançamento: extrato da conta ou parcela da fatura do cartão. */
 export type EntryOrigin = "CONTA" | "CARTAO";
@@ -41,6 +42,7 @@ export type AccountEntry = EntryBase & { origem: "CONTA"; formaPagamento: string
 
 export type CardEntry = EntryBase & {
   origem: "CARTAO";
+  tipo: "GASTO" | "ESTORNO";
   /** A categoria pertence à compra; editar muda todas as parcelas. */
   purchaseId: string;
   parcela: { numero: number; total: number } | null;
@@ -50,7 +52,7 @@ export type CardEntry = EntryBase & {
 /** Um item do mês, na mesma forma para Dashboard e Transações. */
 export type MonthEntry = AccountEntry | CardEntry;
 
-/** categoryId "none" = sem categoria. */
+/** categoryId "none" = sem categoria; tipo GASTO inclui estornos (a lista soma igual ao card Gastos). */
 export type EntryFilters = { categoryId?: string; tipo?: TxType; origem?: EntryOrigin };
 
 /**
@@ -81,7 +83,7 @@ export function buildMonthEntries(account: AccountRow[], card: CardRow[]): Month
           data: p.dataCompra,
           descricao: p.descricao,
           valor: -p.valor,
-          tipo: "GASTO",
+          tipo: p.tipo === "ESTORNO" ? "ESTORNO" : "GASTO",
           categoryId: p.categoryId,
           parcela: p.parcelas > 1 ? { numero: p.numero, total: p.parcelas } : null,
           estorno: p.tipo === "ESTORNO",
@@ -96,7 +98,7 @@ export function filterEntries(entries: MonthEntry[], filters: EntryFilters): Mon
   return entries.filter(
     (e) =>
       (!categoryId || e.categoryId === (categoryId === "none" ? null : categoryId)) &&
-      (!tipo || e.tipo === tipo) &&
+      (!tipo || (tipo === "GASTO" ? countsAsExpense(e.tipo) : e.tipo === tipo)) &&
       (!origem || e.origem === origem),
   );
 }

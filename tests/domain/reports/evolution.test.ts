@@ -61,3 +61,21 @@ describe("originSplit", () => {
     expect(Object.is(r.conta, 0) && Object.is(r.cartao, 0)).toBe(true);
   });
 });
+
+describe("estornos na evolução", () => {
+  test("estorno da conta abate do gasto da conta", () => {
+    expect(originSplit([{ mes: "2026-10", entries: [conta(-3000), conta(1000, { tipo: "ESTORNO" })] }])).toEqual([
+      { mes: "2026-10", conta: 2000, cartao: 0 },
+    ]);
+  });
+
+  test("estorno não é entrada", () => {
+    const [l] = monthlyEvolution(
+      [{ mes: "2026-10", entries: [conta(10000, { categoryId: "sal" }), conta(-3000, { categoryId: "alim" }), conta(1000, { tipo: "ESTORNO", categoryId: "alim" })] }],
+      cats,
+      new Map(),
+    ).linhas;
+    expect(l.entradas).toBe(10000);
+    expect(l.gastos).toBe(2000);
+  });
+});

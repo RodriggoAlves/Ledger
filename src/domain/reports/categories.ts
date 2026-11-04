@@ -1,3 +1,4 @@
+import { countsAsExpense } from "../tx-type";
 import type { MonthEntries } from "./period";
 
 type Cat = { id: string; nome: string; cor: string };
@@ -19,13 +20,13 @@ export type CategoryPeriod = {
 
 const UNCATEGORIZED = { nome: "Sem categoria", cor: "#a1a1aa" };
 
-/** Gasto (GASTO, positivo) ou entrada (RECEITA) por categoria ao longo do período; maior primeiro. */
+/** Gasto (GASTO com estornos abatidos, positivo) ou entrada (RECEITA) por categoria ao longo do período; maior primeiro. */
 export function categoriesInPeriod(meses: MonthEntries, cats: Cat[], tipo: "GASTO" | "RECEITA"): CategoryPeriod[] {
   const sign = tipo === "GASTO" ? -1 : 1;
   const series = new Map<string | null, number[]>();
   meses.forEach(({ entries }, i) => {
     for (const e of entries) {
-      if (e.tipo !== tipo) continue;
+      if (tipo === "GASTO" ? !countsAsExpense(e.tipo) : e.tipo !== tipo) continue;
       const serie = series.get(e.categoryId) ?? Array<number>(meses.length).fill(0);
       serie[i] += sign * e.valor;
       series.set(e.categoryId, serie);

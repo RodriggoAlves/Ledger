@@ -1,6 +1,6 @@
 import type { TxType } from "./picpay-parser";
 
-const TIPOS: TxType[] = ["GASTO", "RECEITA", "MOVIMENTACAO"];
+const TIPOS: TxType[] = ["GASTO", "ESTORNO", "RECEITA", "MOVIMENTACAO"];
 
 export function chunk<T>(items: T[], size: number): T[][] {
   const out: T[][] = [];
