@@ -46,13 +46,18 @@ export type RowData =
 
 type Categories = { id: string; nome: string; tipo: TxType }[];
 
-export function TransactionRow({ row, categories }: { row: RowData; categories: Categories }) {
-  return row.origem === "CARTAO" ? (
-    <CardEntryRow row={row} categories={categories} />
-  ) : (
-    <AccountEntryRow row={row} categories={categories} />
-  );
+type RowProps<R extends RowData = RowData> = {
+  row: R;
+  categories: Categories;
+  /** Destaca a linha com um filete na borda esquerda (ex.: pendente no meio das já resolvidas). */
+  marked?: boolean;
+};
+
+export function TransactionRow({ row, ...rest }: RowProps) {
+  return row.origem === "CARTAO" ? <CardEntryRow row={row} {...rest} /> : <AccountEntryRow row={row} {...rest} />;
 }
+
+const MARK = "shadow-[inset_3px_0_0_var(--brand-from)]";
 
 function Description({ descricao, labels }: { descricao: string; labels: string[] }) {
   return (
@@ -68,10 +73,10 @@ function Description({ descricao, labels }: { descricao: string; labels: string[
 }
 
 /** Parcela da fatura: só a categoria é editável, e vale para a compra inteira. */
-function CardEntryRow({ row, categories }: { row: Extract<RowData, { origem: "CARTAO" }>; categories: Categories }) {
+function CardEntryRow({ row, categories, marked }: RowProps<Extract<RowData, { origem: "CARTAO" }>>) {
   return (
     <TableRow>
-      <TableCell className="whitespace-nowrap">
+      <TableCell className={`whitespace-nowrap ${marked ? MARK : ""}`}>
         {new Date(row.data).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
       </TableCell>
       <Description descricao={row.descricao} labels={row.labels} />
@@ -91,7 +96,7 @@ function CardEntryRow({ row, categories }: { row: Extract<RowData, { origem: "CA
   );
 }
 
-function AccountEntryRow({ row, categories }: { row: Extract<RowData, { origem: "CONTA" }>; categories: Categories }) {
+function AccountEntryRow({ row, categories, marked }: RowProps<Extract<RowData, { origem: "CONTA" }>>) {
   const [pending, startTransition] = useTransition();
   const offerRule = useRuleOffer();
 
@@ -122,7 +127,7 @@ function AccountEntryRow({ row, categories }: { row: Extract<RowData, { origem: 
 
   return (
     <TableRow className={pending ? "opacity-60" : undefined}>
-      <TableCell className="whitespace-nowrap">
+      <TableCell className={`whitespace-nowrap ${marked ? MARK : ""}`}>
         {new Date(row.data).toLocaleString("pt-BR", {
           timeZone: "UTC",
           day: "2-digit",

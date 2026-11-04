@@ -2,7 +2,6 @@ import Link from "next/link";
 import { MonthPicker } from "@/components/month-picker";
 import { RuleOfferProvider } from "@/components/rule-offer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { db } from "@/db/client";
 import { getClosings } from "@/db/closings";
 import { getInvoiceForMonth } from "@/db/credit";
@@ -10,7 +9,6 @@ import { getMonthEntries } from "@/db/entries";
 import { getAvailableMonths, getCategories } from "@/db/queries";
 import { getNomeExtrato } from "@/db/settings";
 import { closingSteps, monthStatus, pendingCount, type MonthStatus } from "@/domain/closing";
-import type { MonthEntry } from "@/domain/entries";
 import { addMonths } from "@/domain/invoice";
 import { formatBRL } from "@/domain/money";
 import { currentMonth, formatMonth, parseMonth } from "@/domain/month";
@@ -19,8 +17,8 @@ import { requireUserId } from "@/lib/auth";
 import { NOME_EXTRATO_AJUDA } from "@/domain/titular";
 import { NomeExtratoForm } from "../configuracoes/nome-extrato-section";
 import { toRowData } from "../transacoes/row-data";
-import { TransactionRow } from "../transacoes/transaction-row";
 import { CloseButtons } from "./close-buttons";
+import { StepEntries } from "./step-entries";
 import { TitularStep } from "./titular-step";
 
 type Props = { searchParams: Promise<{ mes?: string }> };
@@ -45,31 +43,6 @@ function Step({ n, title, children, ok }: { n: number; title: string; children?:
       </CardHeader>
       <CardContent className="space-y-3">{ok ? <p className="text-muted-foreground">Tudo certo.</p> : children}</CardContent>
     </Card>
-  );
-}
-
-type Categories = Parameters<typeof TransactionRow>[0]["categories"];
-
-function EntriesTable({ entries, categories }: { entries: MonthEntry[]; categories: Categories }) {
-  return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Data</TableHead>
-            <TableHead>Descrição</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Categoria</TableHead>
-            <TableHead className="text-right">Valor</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {entries.map((e) => (
-            <TransactionRow key={`${e.origem}-${e.id}`} categories={categories} row={toRowData(e)} />
-          ))}
-        </TableBody>
-      </Table>
-    </div>
   );
 }
 
@@ -144,12 +117,22 @@ export default async function FechamentoPage({ searchParams }: Props) {
 
       <RuleOfferProvider>
         <div className="space-y-6">
-          <Step n={3} title="Entradas sem categoria" ok={steps.entradas.length === 0}>
-            <EntriesTable entries={steps.entradas} categories={categories} />
-          </Step>
-          <Step n={4} title="Gastos sem categoria" ok={steps.gastos.length === 0}>
-            <EntriesTable entries={steps.gastos} categories={categories} />
-          </Step>
+          <StepEntries
+            n={3}
+            title="Entradas"
+            pendentes={steps.entradas.map(toRowData)}
+            todas={steps.todasEntradas.map(toRowData)}
+            categories={categories}
+            vazio="Nenhuma entrada no extrato neste mês."
+          />
+          <StepEntries
+            n={4}
+            title="Gastos"
+            pendentes={steps.gastos.map(toRowData)}
+            todas={steps.todosGastos.map(toRowData)}
+            categories={categories}
+            vazio="Nenhum gasto neste mês."
+          />
         </div>
       </RuleOfferProvider>
 
