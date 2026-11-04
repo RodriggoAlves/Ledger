@@ -8,11 +8,12 @@ import { db } from "@/db/client";
 import { getMonthEntries } from "@/db/entries";
 import { getAvailableMonths, getCategories } from "@/db/queries";
 import { categoryFilterOptions } from "@/domain/category-options";
-import { entriesTotal, entryLabels, filterEntries, parseOrigin } from "@/domain/entries";
+import { entriesTotal, filterEntries, parseOrigin } from "@/domain/entries";
 import { formatBRL } from "@/domain/money";
 import { currentMonth, parseMonth } from "@/domain/month";
 import { parseTipo, tipoFilterOptions } from "@/domain/tx-type";
 import { requireUserId } from "@/lib/auth";
+import { toRowData } from "./row-data";
 import { TransactionRow } from "./transaction-row";
 
 type Props = { searchParams: Promise<{ mes?: string; categoria?: string; tipo?: string; origem?: string }> };
@@ -101,34 +102,7 @@ export default async function TransacoesPage({ searchParams }: Props) {
                 </TableHeader>
                 <TableBody>
                   {lista.map((e) => (
-                    <TransactionRow
-                      key={`${e.origem}-${e.id}`}
-                      categories={categories}
-                      row={
-                        e.origem === "CARTAO"
-                          ? {
-                              origem: "CARTAO",
-                              id: e.id,
-                              purchaseId: e.purchaseId,
-                              data: e.data.toISOString(),
-                              descricao: e.descricao,
-                              valor: e.valor,
-                              tipo: e.tipo,
-                              categoryId: e.categoryId,
-                              labels: entryLabels(e),
-                            }
-                          : {
-                              origem: "CONTA",
-                              id: e.id,
-                              data: e.data.toISOString(),
-                              descricao: e.descricao,
-                              valor: e.valor,
-                              tipo: e.tipo,
-                              categoryId: e.categoryId,
-                              labels: entryLabels(e),
-                            }
-                      }
-                    />
+                    <TransactionRow key={`${e.origem}-${e.id}`} categories={categories} row={toRowData(e)} />
                   ))}
                 </TableBody>
               </Table>

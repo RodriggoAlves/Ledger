@@ -10,7 +10,14 @@ export async function GET(request: Request) {
   const sp = new URL(request.url).searchParams;
   const fim = parseMonth(sp.get("mes")) ?? currentMonth();
   const meses = periodMonths(fim, parsePeriodo(sp.get("periodo") ?? undefined));
+  // Só meses fechados, como na página.
   const { periodo, cats } = await loadPeriod(userId, meses);
+  if (!periodo.length) {
+    return new Response("Nenhum mês fechado neste período", {
+      status: 404,
+      headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" },
+    });
+  }
   return new Response(entriesToCsv(periodo, cats), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

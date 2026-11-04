@@ -42,3 +42,14 @@ export function todayDate(now: Date = new Date(), timeZone = "America/Sao_Paulo"
   const [y, m, d] = now.toLocaleDateString("en-CA", { timeZone }).split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d));
 }
+
+/**
+ * Query string ao escolher `month` num seletor: o mês que a página mostra sem ?mes= (`defaultMonth`)
+ * sai da URL; os demais ficam em ?mes=. O fechamento abre no mês anterior, não no atual.
+ */
+export function monthSearch(current: string, month: MonthKey, defaultMonth: MonthKey): string {
+  const sp = new URLSearchParams(current);
+  if (month === defaultMonth) sp.delete("mes");
+  else sp.set("mes", month);
+  return sp.toString();
+}

@@ -4,6 +4,8 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db/client";
 import { categories, categoryRules } from "@/db/schema";
+import { setNomeExtrato } from "@/db/settings";
+import { cleanNome } from "@/domain/titular";
 import { ruleInputError, ruleTipoAfterCategoryMove } from "@/domain/categorization";
 import { isUuid } from "@/domain/guards";
 import type { TxType } from "@/domain/picpay-parser";
@@ -13,6 +15,14 @@ import { requireUserId } from "@/lib/auth";
 function done() {
   revalidatePath("/", "layout");
   return {};
+}
+
+/** Nome do usuário no extrato; vazio desliga o reconhecimento de Pix entre suas contas. Não mexe em transações. */
+export async function saveNomeExtrato(nome: string): Promise<{ error?: string }> {
+  const userId = await requireUserId();
+  if (typeof nome !== "string") return { error: "Nome inválido" };
+  await setNomeExtrato(db, userId, cleanNome(nome));
+  return done();
 }
 
 export async function upsertCategory(data: {

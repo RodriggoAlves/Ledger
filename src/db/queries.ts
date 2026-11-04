@@ -24,13 +24,16 @@ export async function getRulesWithIds(userId: string) {
     .orderBy(categoryRules.padrao);
 }
 
-/** Categoria usada quando uma MOVIMENTACAO não casa com nenhuma regra. */
-export async function getFallbackCategories(userId: string): Promise<{ MOVIMENTACAO: string | null }> {
-  const [row] = await db
-    .select({ id: categories.id })
+/** Categorias automáticas: MOVIMENTACAO sem regra e Pix entre contas próprias (titular). */
+export async function getFallbackCategories(
+  userId: string,
+): Promise<{ MOVIMENTACAO: string | null; TRANSFERENCIA_PROPRIA: string | null }> {
+  const rows = await db
+    .select({ id: categories.id, nome: categories.nome })
     .from(categories)
-    .where(and(eq(categories.userId, userId), eq(categories.nome, "Movimentação")));
-  return { MOVIMENTACAO: row?.id ?? null };
+    .where(and(eq(categories.userId, userId), inArray(categories.nome, ["Movimentação", "Transferência própria"])));
+  const id = (nome: string) => rows.find((r) => r.nome === nome)?.id ?? null;
+  return { MOVIMENTACAO: id("Movimentação"), TRANSFERENCIA_PROPRIA: id("Transferência própria") };
 }
 
 export async function getExistingHashes(userId: string, hashes: string[]): Promise<Set<string>> {

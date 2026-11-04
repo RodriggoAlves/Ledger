@@ -208,6 +208,26 @@ export const cdiOverrides = pgTable("cdi_overrides", {
   atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Preferências do usuário. `nomeExtrato`: como o próprio nome aparece nos Pix entre suas contas. */
+export const userSettings = pgTable("user_settings", {
+  userId: uuid("user_id").primaryKey(),
+  nomeExtrato: text("nome_extrato"),
+});
+
+/** Selo de mês conferido; `assinatura` detecta mudança nos lançamentos depois do fechamento (ver domain/closing.ts). */
+export const monthClosings = pgTable(
+  "month_closings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull(),
+    /** "AAAA-MM". */
+    mes: text("mes").notNull(),
+    fechadoEm: timestamp("fechado_em", { withTimezone: true }).notNull().defaultNow(),
+    assinatura: text("assinatura").notNull(),
+  },
+  (t) => [unique().on(t.userId, t.mes)],
+);
+
 export type Category = typeof categories.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type CreditCard = typeof creditCards.$inferSelect;

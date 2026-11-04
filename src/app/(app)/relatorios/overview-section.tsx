@@ -14,6 +14,8 @@ import { DataTable, pct, Section, Td } from "./ui";
 export async function OverviewSection({ userId, meses }: { userId: string; meses: MonthKey[] }) {
   const [{ periodo, cats }, movs] = await Promise.all([loadPeriod(userId, meses), getCofrinhoMovements(db, userId)]);
   const { linhas, totais } = monthlyEvolution(periodo, cats, cofrinhoByMonth(movs));
+  // Médias sobre os meses fechados (os abertos ficam fora dos relatórios).
+  const n = Math.max(1, periodo.length);
   const split = originSplit(periodo);
   const conta = split.reduce((s, r) => s + r.conta, 0);
   const cartao = split.reduce((s, r) => s + r.cartao, 0);
@@ -27,14 +29,14 @@ export async function OverviewSection({ userId, meses }: { userId: string; meses
           tone="income"
           label="Entradas"
           value={formatBRL(totais.entradas)}
-          hint={`média de ${formatBRL(Math.round(totais.entradas / meses.length))} por mês`}
+          hint={`média de ${formatBRL(Math.round(totais.entradas / n))} por mês`}
         />
         <Stat
           icon={<ArrowUpRight className="size-4" />}
           tone="expense"
           label="Gastos"
           value={formatBRL(totais.gastos)}
-          hint={`média de ${formatBRL(Math.round(totais.gastos / meses.length))} por mês`}
+          hint={`média de ${formatBRL(Math.round(totais.gastos / n))} por mês`}
         />
         <Stat
           icon={<Scale className="size-4" />}

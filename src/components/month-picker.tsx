@@ -5,7 +5,7 @@ import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-rea
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { cn } from "cn";
-import { formatMonth, type MonthKey } from "@/domain/month";
+import { formatMonth, monthSearch, type MonthKey } from "@/domain/month";
 
 const NOMES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
@@ -13,9 +13,19 @@ const yearOf = (m: MonthKey) => Number(m.slice(0, 4));
 
 /**
  * Seletor de mês em grade (ano + 12 meses), gravado em ?mes=.
- * Sem ?mes= a página mostra o mês atual; meses com dados ganham um ponto.
+ * Sem ?mes= a página mostra `defaultMonth` (o mês atual, salvo indicação); meses com dados ganham um ponto.
  */
-export function MonthPicker({ value, today, available }: { value: MonthKey; today: MonthKey; available: MonthKey[] }) {
+export function MonthPicker({
+  value,
+  today,
+  available,
+  defaultMonth = today,
+}: {
+  value: MonthKey;
+  today: MonthKey;
+  available: MonthKey[];
+  defaultMonth?: MonthKey;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -24,10 +34,7 @@ export function MonthPicker({ value, today, available }: { value: MonthKey; toda
   const withData = new Set(available);
 
   function go(month: MonthKey) {
-    const sp = new URLSearchParams(params);
-    if (month === today) sp.delete("mes");
-    else sp.set("mes", month);
-    const qs = sp.toString();
+    const qs = monthSearch(params.toString(), month, defaultMonth);
     router.push(qs ? `${pathname}?${qs}` : pathname);
     setOpen(false);
   }

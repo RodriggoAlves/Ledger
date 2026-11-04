@@ -130,29 +130,35 @@ export async function CardSection({ userId, meses }: { userId: string; meses: Mo
 
       <Section
         title="À vista × parcelado"
-        description={`Gasto no cartão em cada mês do período. ${totalMix > 0 ? `${pct(Math.round((parcelado / totalMix) * 1000) / 10)} veio de parcelas.` : ""}`}
+        description={`Gasto no cartão em cada mês fechado do período. ${totalMix > 0 ? `${pct(Math.round((parcelado / totalMix) * 1000) / 10)} veio de parcelas.` : ""}`}
       >
-        <MonthBars
-          stacked
-          label="Gasto no cartão por mês, à vista e parcelado"
-          data={mix.map((m) => ({ label: shortMonth(m.mes), parcelado: m.parcelado, avista: m.avista }))}
-          series={[
-            { key: "parcelado", label: "Parcelas", color: "var(--series-1)" },
-            { key: "avista", label: "À vista", color: "var(--series-2)" },
-          ]}
-        />
-        <DataTable head={[{ label: "Mês" }, { label: "Parcelas", right: true }, { label: "À vista", right: true }, { label: "Total", right: true }]}>
-          {mix.map((m) => (
-            <tr key={m.mes}>
-              <Td className="capitalize">{formatMonth(m.mes)}</Td>
-              <Td right>{formatBRL(m.parcelado)}</Td>
-              <Td right>{formatBRL(m.avista)}</Td>
-              <Td right className="font-semibold">
-                {formatBRL(m.parcelado + m.avista)}
-              </Td>
-            </tr>
-          ))}
-        </DataTable>
+        {mix.length === 0 ? (
+          <Empty>Nenhum mês fechado neste período.</Empty>
+        ) : (
+          <>
+            <MonthBars
+              stacked
+              label="Gasto no cartão por mês, à vista e parcelado"
+              data={mix.map((m) => ({ label: shortMonth(m.mes), parcelado: m.parcelado, avista: m.avista }))}
+              series={[
+                { key: "parcelado", label: "Parcelas", color: "var(--series-1)" },
+                { key: "avista", label: "À vista", color: "var(--series-2)" },
+              ]}
+            />
+            <DataTable head={[{ label: "Mês" }, { label: "Parcelas", right: true }, { label: "À vista", right: true }, { label: "Total", right: true }]}>
+              {mix.map((m) => (
+                <tr key={m.mes}>
+                  <Td className="capitalize">{formatMonth(m.mes)}</Td>
+                  <Td right>{formatBRL(m.parcelado)}</Td>
+                  <Td right>{formatBRL(m.avista)}</Td>
+                  <Td right className="font-semibold">
+                    {formatBRL(m.parcelado + m.avista)}
+                  </Td>
+                </tr>
+              ))}
+            </DataTable>
+          </>
+        )}
       </Section>
     </div>
   );

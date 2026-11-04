@@ -63,9 +63,11 @@ export async function CategoriesSection({ userId, meses }: { userId: string; mes
   const { periodo, cats } = await loadPeriod(userId, meses);
   const gastos = categoriesInPeriod(periodo, cats, "GASTO");
   const receitas = categoriesInPeriod(periodo, cats, "RECEITA");
-  const fim = meses[meses.length - 1];
-  const g = chartOf(gastos, meses);
-  const r = chartOf(receitas, meses);
+  // Só os meses fechados entram: séries, gráficos e "último mês" seguem essa lista.
+  const fechados = periodo.map((m) => m.mes);
+  const fim = fechados[fechados.length - 1] ?? meses[meses.length - 1];
+  const g = chartOf(gastos, fechados);
+  const r = chartOf(receitas, fechados);
   const parcial = fim === currentMonth() ? " O último mês ainda está em andamento, então tende a aparecer abaixo da média." : "";
 
   return (

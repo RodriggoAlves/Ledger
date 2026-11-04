@@ -1,5 +1,5 @@
-import { expect, test } from "vitest";
-import { currentMonth, formatMonth, monthKey, monthRange, parseMonth } from "@/domain/month";
+import { describe, expect, test } from "vitest";
+import { currentMonth, formatMonth, monthKey, monthRange, monthSearch, parseMonth } from "@/domain/month";
 
 test("monthRange returns [start, next month start)", () => {
   const [start, end] = monthRange("2026-12");
@@ -23,4 +23,16 @@ test("currentMonth uses the Brazilian clock, not UTC", () => {
   // 01/12 01:30 UTC ainda é 30/11 22:30 em São Paulo
   expect(currentMonth(new Date("2026-12-01T01:30:00Z"))).toBe("2026-11");
   expect(currentMonth(new Date("2026-12-01T03:30:00Z"))).toBe("2026-12");
+});
+
+describe("monthSearch", () => {
+  test("o mês padrão da página sai da URL; os demais ficam em ?mes=", () => {
+    expect(monthSearch("aba=x", "2026-11", "2026-11")).toBe("aba=x");
+    expect(monthSearch("mes=2026-09", "2026-10", "2026-11")).toBe("mes=2026-10");
+  });
+
+  test("página cujo padrão não é o mês atual (fechamento) mantém o mês atual na URL", () => {
+    expect(monthSearch("mes=2026-09", "2026-11", "2026-10")).toBe("mes=2026-11");
+    expect(monthSearch("mes=2026-09", "2026-10", "2026-10")).toBe("");
+  });
 });

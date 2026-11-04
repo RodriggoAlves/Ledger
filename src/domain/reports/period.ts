@@ -22,3 +22,8 @@ export function periodMonths(fim: MonthKey, n: number): MonthKey[] {
 export function fillMonths(meses: MonthKey[], dados: Map<MonthKey, MonthEntry[]>): MonthEntries {
   return meses.map((mes) => ({ mes, entries: dados.get(mes) ?? [] }));
 }
+
+/** Abas que dependem de meses fechados mostram o estado vazio sem nenhum; Investimentos e Cartão (futuro) não. */
+export function closedEmptyState(aba: string, fechados: number): boolean {
+  return aba !== "investimentos" && aba !== "cartao" && fechados === 0;
+}

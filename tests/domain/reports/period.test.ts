@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { fillMonths, parsePeriodo, periodMonths } from "@/domain/reports/period";
+import { closedEmptyState, fillMonths, parsePeriodo, periodMonths } from "@/domain/reports/period";
 import { conta } from "./helpers";
 
 describe("periodMonths", () => {
@@ -28,5 +28,17 @@ describe("fillMonths", () => {
       { mes: "2026-10", entries: [] },
       { mes: "2026-11", entries: [e] },
     ]);
+  });
+});
+
+describe("closedEmptyState", () => {
+  test("Investimentos e Cartão nunca dão lugar ao estado vazio (dados futuros/saldos)", () => {
+    expect(closedEmptyState("investimentos", 0)).toBe(false);
+    expect(closedEmptyState("cartao", 0)).toBe(false);
+  });
+
+  test("as demais abas mostram o estado vazio sem mês fechado", () => {
+    expect(closedEmptyState("geral", 0)).toBe(true);
+    expect(closedEmptyState("geral", 2)).toBe(false);
   });
 });

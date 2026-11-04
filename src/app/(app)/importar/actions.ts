@@ -5,6 +5,7 @@ import { db } from "@/db/client";
 import { deleteImport } from "@/db/imports";
 import { getExistingHashes, getFallbackCategories, getRules } from "@/db/queries";
 import { imports, transactions } from "@/db/schema";
+import { getNomeExtrato } from "@/db/settings";
 import { chunk, isUuid } from "@/domain/guards";
 import { buildImportPlan, type ImportPlan } from "@/domain/import-plan";
 import { InvalidPicPayFileError, parsePicPayCsv } from "@/domain/picpay-parser";
@@ -30,12 +31,13 @@ export type ImportPreview = {
 async function plan(userId: string, content: string): Promise<ImportPlan> {
   if (content.length > MAX_CHARS) throw new FileTooLargeError();
   const parsed = parsePicPayCsv(content);
-  const [existing, rules, fallback] = await Promise.all([
+  const [existing, rules, fallback, titular] = await Promise.all([
     getExistingHashes(userId, parsed.rows.map((r) => r.hash)),
     getRules(userId),
     getFallbackCategories(userId),
+    getNomeExtrato(db, userId),
   ]);
-  return buildImportPlan(parsed, existing, rules, fallback);
+  return buildImportPlan(parsed, existing, rules, fallback, titular);
 }
 
 const total = (p: ImportPlan) => p.novas.length + p.duplicadas + p.invalidas.length;

@@ -7,8 +7,12 @@ import { Card } from "@/components/ui/card";
 import { db } from "@/db/client";
 import { getInvoiceForMonth } from "@/db/credit";
 import { getMonthEntries } from "@/db/entries";
+import { getClosings } from "@/db/closings";
 import { getAvailableMonths, getCategories } from "@/db/queries";
+import { getNomeExtrato } from "@/db/settings";
+import { incomeHint } from "@/domain/closing";
 import { entriesTotal, filterEntries } from "@/domain/entries";
+import { addMonths } from "@/domain/invoice";
 import { invoiceCard } from "@/domain/invoice-card";
 import { formatBRL } from "@/domain/money";
 import { currentMonth, formatMonth, parseMonth } from "@/domain/month";
@@ -45,11 +49,18 @@ export default async function DashboardPage({ searchParams }: Props) {
   const today = currentMonth();
   const month = parseMonth(sp.mes) ?? today;
   // Uma lista só (extrato + parcelas da fatura que fecha no mês) para todos os números da página.
-  const [entries, categories, fatura] = await Promise.all([
+  const prev = addMonths(today, -1);
+  const [entries, categories, fatura, nome, prevEntries, prevClosing] = await Promise.all([
     getMonthEntries(db, userId, month),
     getCategories(userId),
     getInvoiceForMonth(db, userId, month),
+    getNomeExtrato(db, userId),
+    month === today ? getMonthEntries(db, userId, prev) : Promise.resolve([]),
+    month === today ? getClosings(db, userId, [prev]) : Promise.resolve(new Map()),
   ]);
+  // Avisos do fechamento: mês anterior por fechar (só no mês atual) e Pix seus sem renda marcada.
+  const fecharAnterior = month === today && prevEntries.length > 0 && !prevClosing.has(prev);
+  const rendaPendente = incomeHint(entries, nome);
   const resumo = summarizeSpending(entries, categories);
   const entradas = entries.filter((e) => e.tipo === "RECEITA");
   const receitas = entradas.reduce((s, e) => s + e.valor, 0);
@@ -77,6 +88,26 @@ export default async function DashboardPage({ searchParams }: Props) {
           <MonthPicker value={month} today={today} available={months} />
         </div>
       </div>
+
+      {fecharAnterior && (
+        <Card size="sm" className="flex-row flex-wrap items-center justify-between gap-3 px-4">
+          <p className="first-letter:uppercase">{formatMonth(prev).split(" ")[0]} ainda não foi fechado</p>
+          <Link href={`/fechamento?mes=${prev}`} className="bg-brand rounded-full px-4 py-1.5 text-sm font-semibold text-white">
+            Fechar mês
+          </Link>
+        </Card>
+      )}
+      {rendaPendente !== null && (
+        <Card size="sm" className="flex-row flex-wrap items-center justify-between gap-3 px-4">
+          <p>
+            Você recebeu {formatBRL(rendaPendente)} de você mesmo em {formatMonth(month).split(" ")[0]} e nada foi
+            marcado como renda. Algum foi salário?
+          </p>
+          <Link href={`/fechamento?mes=${month}`} className="text-sm font-semibold underline">
+            Ver Pix
+          </Link>
+        </Card>
+      )}
 
       <section className="aurora relative overflow-hidden rounded-3xl p-6 text-white shadow-[0_30px_70px_-35px_var(--brand-to)] sm:p-8">
         <div
